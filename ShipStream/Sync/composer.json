@@ -1,0 +1,22 @@
+{
+    "name": "shipstream/module-sync",
+    "description": "ShipStream Sync Module",
+    "type": "magento2-module",
+    "license": "OSL-3.0",
+    "authors": [
+        {
+		  "name": "ShipStream",
+		  "email": "info@shipstream.io"
+		}
+    ],
+    "minimum-stability": "dev",
+    "require": {},
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "ShipStream\\Sync\\": ""
+        }
+    }
+}

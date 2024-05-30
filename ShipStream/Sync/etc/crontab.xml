@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <group id="default">
+        <job name="sync_shipstream_inventory" instance="ShipStream\Sync\Model\Cron" method="syncInventory">
+            <schedule>* 2 * * *</schedule>
+        </job>
+    </group>
+</config>

@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+	<system>
+		<section id="shipstream" sortOrder="10" showInDefault="1" translate="label">
+			<label>ShipStream Sync</label>
+			<tab>service</tab>
+			<resource>ShipStream_Sync::config_shipstream_sync</resource>
+			<group id="general" sortOrder="10" showInDefault="1" translate="label">
+				<label>General</label>
+				<field id="realtime_sync" type="select" sortOrder="10" showInDefault="1" translate="label">
+					<label>Enable Real Time Order Sync</label>
+					<comment/>
+					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+				</field>
+				<field id="send_shipment_email" type="select" sortOrder="10" showInDefault="1" translate="label">
+					<label>Send New Shipment Email</label>
+					<comment/>
+					<source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+				</field>
+			</group>
+		</section>
+		<tab id="shipadobe" translate="label" sortOrder="100">
+            <label>ShipStream</label>
+        </tab>
+	</system>
+</config>
