@@ -83,58 +83,8 @@ a custom workflow.
 
 Installation
 ============
-
-You can install this extension using Composer, modman, zip file or tar file.
-
 **Flush the Magento2 cache after installation to activate the extension.**
 
-#### modman
-
-```
-$ modman init
-$ modman clone https://github.com/ShipStream/Magento2-sync
-```
-
-#### Composer
-
-[comment]: <> (Add Firegento package repository to your repositories if you haven't already done so:)
-
-[comment]: <> (```json)
-
-[comment]: <> (  "repositories": [)
-
-[comment]: <> (    {)
-
-[comment]: <> (      "type": "composer",)
-
-[comment]: <> (      "url": "http://packages.firegento.com")
-
-[comment]: <> (    })
-
-[comment]: <> (  ],)
-
-[comment]: <> (```)
-
-Run `composer require` to pull in the extension to your composer environment.
-
-```
-$ composer require shipstream/Magento2-sync
-```
-
-#### Zip file
-
-1. Download the latest release from the [Releases](https://github.com/ShipStream/Magento2-sync/releases) page or click [here](https://github.com/ShipStream/Magento2-sync/archive/refs/heads/master.zip) to grab the latest nightly build.
-2. Extract the contents of the downloaded file into a clean directory.
-3. Move the files from the `Magento2-sync-master/app` directory into your Magento2/Magento root `app` directory.
-
-#### Linux command line (tar file)
-
-```
-cd <your-Magento-root>
-curl -fsSL -o /tmp/Magento2-sync-master.tar.gz https://github.com/ShipStream/Magento2-sync/archive/refs/heads/master.tar.gz
-tar -xzv Magento2-sync-master/app --strip-components=1 -f /tmp/Magento2-sync-master.tar.gz
-rm /tmp/Magento2-sync-master.tar.gz
-```
 
 Setup
 =====
@@ -192,15 +142,19 @@ The following Role Resources are required for best operation with the ShipStream
 
 The ShipStream plugin will need the following information:
 
-- The API URL of your store which should be the Magento admin site base url plus `/api/soap/`
+- The API URL of your store which should be the Magento2 admin site base url plus `/soap/default/`
 - The API User and API Password (created in the step above)
+- The Admin User and Password (created in the step above)
+- Access Token (created in the step above)
 - The name of the order status to use for automatic import (e.g. "Processing" or "Ready to Ship")
+
+# Assign Source/Stock
+
+We should assign the new source and stock created by module as base at the backend.
 
 # Customization
 
-Feel free to modify this source code to fit your specific needs. For example if you have multiple
-fulfillment providers you may want to add some metadata to the orders so that they will not be
-imported automatically.
+Feel free to modify this source code to fit your specific needs.
 
 # Support
 
