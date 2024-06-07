@@ -4,9 +4,7 @@
  * See COPYING.txt for license details.
  */
 declare(strict_types=1);
-
 namespace ShipStream\Sync\Api;
-
 interface ShipStreamInfoInterface
 {
   /**
@@ -16,4 +14,3 @@ interface ShipStreamInfoInterface
 	 */
     public function infos($param);
 }
-

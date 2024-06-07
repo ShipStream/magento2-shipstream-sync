@@ -11,7 +11,6 @@ use Magento\Sales\Api\Data\ShipmentTrackInterfaceFactory;
 use Magento\Sales\Api\Data\ShipmentCommentInterfaceFactory;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Psr\Log\LoggerInterface;
-
 class ShipOrderInfo implements \ShipStream\Sync\Api\ShipOrderInfoInterface
 {
 	protected $shipmentRepository;
@@ -20,8 +19,6 @@ class ShipOrderInfo implements \ShipStream\Sync\Api\ShipOrderInfoInterface
 	protected $logger;
 	protected $searchCriteriaBuilder;
 	protected $orderRepository;
-
-
     public function __construct(
 		OrderRepositoryInterface $orderRepository,
         ShipmentRepositoryInterface $shipmentRepository,
@@ -43,25 +40,21 @@ class ShipOrderInfo implements \ShipStream\Sync\Api\ShipOrderInfoInterface
 	public function info($orderIncrementId)
 	{
 		try{
-				
 				// Fetch the order using the increment ID
 				$orderCriteria = $this->searchCriteriaBuilder
 					->addFilter('increment_id', $orderIncrementId, 'eq')
 					//->addFilter('status', 'ready_to_ship', 'eq') // Add status filter here
 					->create();
 				$orderList = $this->orderRepository->getList($orderCriteria);
-
 				$order = current($orderList->getItems());
 				if (!$order) {
 					throw new \Magento\Framework\Exception\NoSuchEntityException(__('No order found with increment ID %1', $orderIncrementId));
 				}
-
 				// Fetch the shipments for the retrieved order
 				$shipmentCriteria = $this->searchCriteriaBuilder
 					->addFilter('order_id', $order->getEntityId(), 'eq')
 					->create();
 				$shipments = $this->shipmentRepository->getList($shipmentCriteria);
-
 				$shipmentData = [];
 				$result = [];
 				//If no shipment created and only the orders data available
@@ -75,7 +68,7 @@ class ShipOrderInfo implements \ShipStream\Sync\Api\ShipOrderInfoInterface
 						$shipmentdata =$item->toArray();
 						$shipmentdata['product_type'] = $productType;
 						$items[]=$shipmentdata;
-					} 
+					}
 					// Get shipping address details
 					$shippingAddress = $order->getShippingAddress();
 					$shippingAddressData = $shippingAddress ? [
@@ -90,8 +83,7 @@ class ShipOrderInfo implements \ShipStream\Sync\Api\ShipOrderInfoInterface
 						'postcode' => $shippingAddress->getPostcode(),
 						// Add more address details as needed
 					] : null;
-					
-					  // Get tracking information
+					// Get tracking information
 					$tracks = [];
 					// Get shipment comments
 					$comments = [];

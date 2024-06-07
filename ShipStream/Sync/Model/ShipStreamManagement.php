@@ -4,7 +4,6 @@
  * See COPYING.txt for license details.
  */
 declare(strict_types=1);
-
 namespace ShipStream\Sync\Model;
 use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Framework\Module\ModuleListInterface;
@@ -12,7 +11,6 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use ShipStream\Sync\Helper\Data;
 use ShipStream\Sync\Model\Cron;
 use Psr\Log\LoggerInterface;
-
 class ShipStreamManagement implements \ShipStream\Sync\Api\ShipStreamManagementInterface
 {
 	protected $productMetadata;
@@ -21,7 +19,7 @@ class ShipStreamManagement implements \ShipStream\Sync\Api\ShipStreamManagementI
 	protected $cron;
 	protected $logger;
 	protected $scopeConfig;
-	
+
     public function __construct(
 			ProductMetadataInterface $productMetadata,
 			ModuleListInterface $moduleList,
@@ -48,7 +46,7 @@ class ShipStreamManagement implements \ShipStream\Sync\Api\ShipStreamManagementI
 			return 'success';
 		else
 			return 'error';
-	}			
+	}
 	/**
      * {@inheritdoc}
      */
@@ -56,6 +54,4 @@ class ShipStreamManagement implements \ShipStream\Sync\Api\ShipStreamManagementI
 	{
 		return $this->dataHelper->setConfig($path,$value,$source,$source_code,$stock);
 	}
-	
 }
-

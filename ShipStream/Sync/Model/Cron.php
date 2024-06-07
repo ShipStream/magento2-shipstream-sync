@@ -4,9 +4,7 @@
  * See COPYING.txt for license details.
  */
 declare(strict_types=1);
-
 namespace ShipStream\Sync\Model;
-
 use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Framework\Module\ModuleListInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface;
@@ -23,7 +21,6 @@ use Magento\InventoryApi\Api\SourceItemRepositoryInterface;
 use Magento\InventoryApi\Api\Data\SourceItemInterfaceFactory;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\InventoryApi\Api\SourceItemsSaveInterface;
-
 class Cron
 {
 	protected $productMetadata;
@@ -34,7 +31,7 @@ class Cron
 	protected $order;
 	protected $scopeConfig;
     private $resourceConnection;
-    private $storeManager;	
+    private $storeManager;
     private $stockResolver;
     private $sourceItemRepository;
 	private $searchCriteriaBuilder;
@@ -42,7 +39,6 @@ class Cron
     private $sourceItemFactory;
     private $sourceItemsSave;
 	private $sourcesAssignedToStock;
-
     public function __construct(
 			ProductMetadataInterface $productMetadata,
 			ModuleListInterface $moduleList,
@@ -69,7 +65,7 @@ class Cron
 				$this->order = $order;
 				$this->resourceConnection = $resourceConnection->getConnection();
 				$this->storeManager = $storeManager;
-				$this->stockResolver = $stockResolver;		
+				$this->stockResolver = $stockResolver;
 				$this->stockItemRepository = $stockItemRepository;
 				$this->sourceItemInterface = $sourceItemInterface;
 				$this->sourceItemRepository = $sourceItemRepository;
@@ -117,9 +113,7 @@ class Cron
             ->addFilter('sku', $sku, 'eq')
             ->addFilter('source_code', $sourceCode, 'eq')
             ->create();
-
         $sourceItems = $this->sourceItemRepository->getList($searchCriteria)->getItems();
-	
         if (!empty($sourceItems)) {
             $sourceItem = array_shift($sourceItems); // Assuming there's only one item per sku and source code
             return $sourceItem;
@@ -139,7 +133,6 @@ class Cron
 				$this->logger->error("Error in sync inventory:".$e->getMessage());
 		}
 	}
-		
 	 /**
      * Synchronize Magento inventory with the warehouse inventory
      *
@@ -155,41 +148,31 @@ class Cron
             sleep(random_int(0, 60)); // Avoid stampeding the server
         }
 		try{
-			
 			$this->resourceConnection->beginTransaction();
 			$this->logger->info('Beginning inventory sync..');
 			}
 			catch(Exception $e)
 			{
 				$this->logger->info($e->getMessage());
-				
 			}
-					
 				$_source = $this->_getSourceInventory();
-     
 			try {
             if (!empty($_source) && is_array($_source)) {
-				
                 foreach (array_chunk($_source, 5000, true) as $source) {
                     try {
 							$this->logger->info("Inside Inventory update..");
 							$target = $this->_getTargetInventory(array_keys($source));
-							
                         // Get qty of order items that are in processing state and not submitted to shipstream
-                        $processingQty = $this->_getProcessingOrderItemsQty(array_keys($source));	
-							
+                        $processingQty = $this->_getProcessingOrderItemsQty(array_keys($source));
                         foreach ($_source as $sku => $qty) {
                             if (!isset($target[$sku])) {
                                 continue;
                             }
-							 
                             $qty = floor(floatval($qty));
                             $syncQty = $qty;
                             if (isset($processingQty[$sku]['qty'])) {
-
                                 $syncQty = floor($qty - floatval($processingQty[$sku]['qty']));
                             }
-							
                             $targetQty = floatval($target[$sku]['qty']);
                             if ($syncQty == $targetQty) {
                                 continue;
@@ -200,20 +183,16 @@ class Cron
 								$this->logger->info('First Source Code: ' . $sourceCode." item ".$target[$sku]['sourceItemId']);
 								  /** @var SourceItemInterface $sourceItem */
 								$sourceItem = $this->getSourceItemSku($sku, $sourceCode);
-
 								$oldQty = $sourceItem->getQuantity();
 								$sourceItem->setQuantity($syncQty);
 								$sourceItem->save();
-
 								if ($oldQty < 1 && $sourceItem->getStatus() === SourceItemInterface::STATUS_OUT_OF_STOCK && $syncQty > 0) {
 									$sourceItem->setStatus(SourceItemInterface::STATUS_IN_STOCK);
 								}
-
 								$this->logger->info('Stock updated for SKU: ' . $sku . ' at source: ' . $sourceCode);
 							} catch (\Exception $e) {
 								$this->logger->error('Error updating stock for SKU: ' . $sku . ' with message: ' . $e->getMessage());
 							}
-							
                         }
                         $this->resourceConnection->commit();
 						return TRUE;
@@ -241,20 +220,17 @@ class Cron
 			//This code for update source and stock base
 			$productTable = $this->resourceConnection->getTableName('catalog_product_entity');
 			$sourceItemTable = $this->resourceConnection->getTableName('inventory_source_item');
-
 			$columns = [
 				'sku' => 'p.sku',
 				'sourceItemId' => 'si.source_item_id',
 				'source_code' => 'si.source_code',
 				'qty' => 'si.quantity'
 			];
-
 			$select = $this->resourceConnection->select()->forUpdate(true)
 				->from(['p' => $productTable], $columns)
 				->joinInner(['si' => $sourceItemTable], 'p.sku = si.sku', [])
 				->where("si.source_code = '".$this->getCurrentSourceCode()."' and si.sku IN (?)", $skus);
 			return $this->resourceConnection->fetchAssoc($select);
-			
 		}
 		catch(Exception $e)
 		{
@@ -273,12 +249,10 @@ class Cron
 						$this->order::STATE_CANCELED];
         $orderItemTable = $this->resourceConnection->getTableName('sales_order_item');
         $orderTable = $this->resourceConnection->getTableName('sales_order');
-
         $columns = [
             'sku' => 'soi.sku',
             'qty' => new \Zend_Db_Expr('GREATEST(0, SUM(soi.qty_ordered - soi.qty_canceled - soi.qty_refunded))')
         ];
-
         $select = $this->resourceConnection->select()->forUpdate(true)
             ->from(['soi' => $orderItemTable], $columns)
             ->join(['so' => $orderTable], 'so.entity_id = soi.order_id', [])
@@ -292,4 +266,3 @@ class Cron
         return $this->resourceConnection->fetchAssoc($select);
 	}
 }
-

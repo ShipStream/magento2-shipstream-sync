@@ -11,7 +11,6 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use ShipStream\Sync\Helper\Data;
 use ShipStream\Sync\Model\Cron;
 use Psr\Log\LoggerInterface;
-
 class ShipStreamInfo implements \ShipStream\Sync\Api\ShipStreamInfoInterface
 {
 	protected $productMetadata;
@@ -20,7 +19,7 @@ class ShipStreamInfo implements \ShipStream\Sync\Api\ShipStreamInfoInterface
 	protected $cron;
 	protected $logger;
 	protected $scopeConfig;
-	
+
     public function __construct(
 			ProductMetadataInterface $productMetadata,
 			ModuleListInterface $moduleList,
@@ -36,7 +35,7 @@ class ShipStreamInfo implements \ShipStream\Sync\Api\ShipStreamInfoInterface
 				$this->cron = $cron;
 				$this->logger = $logger;
 				$this->scopeConfig = $scopeConfig;
-			}	
+			}
 	/**
      * {@inheritdoc}
     */
@@ -64,4 +63,3 @@ class ShipStreamInfo implements \ShipStream\Sync\Api\ShipStreamInfoInterface
 		}
 	}
 }
-

@@ -4,7 +4,6 @@
  * See COPYING.txt for license details.
  */
 declare(strict_types=1);
-
 namespace ShipStream\Sync\Model;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Convert\Order as OrderConverter;
@@ -21,7 +20,6 @@ use Psr\Log\LoggerInterface;
 use ShipStream\Sync\Model\Cron;
 use ShipStream\Sync\Helper\Data;
 use Magento\Sales\Model\Order\Email\Sender\ShipmentSender;
-
 class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShipmentInterface
 {
     protected $orderRepository;
@@ -37,7 +35,6 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
     protected $cronHelper;
     protected $dataHelper;
 	protected $shipmentSender;
-
    public function __construct(
         OrderRepositoryInterface $orderRepository,
         OrderConverter $orderConverter,
@@ -63,9 +60,8 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
         $this->logger = $logger;
         $this->cronHelper = $cronHelper;
         $this->dataHelper = $dataHelper;
-		$this->shipmentSender = $shipmentSender; 
+		$this->shipmentSender = $shipmentSender;
     }
-
     public function createWithTracking($orderIncrementId, $dataJson)
     {
         try {
@@ -73,7 +69,6 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
                 ->addFilter('increment_id', $orderIncrementId, 'eq')
                 ->create();
             $orderList = $this->orderRepository->getList($searchCriteria);
-
             if ($orderList->getTotalCount() == 0) {
                 $this->logger->error('Order does not exist.');
                 return null;
@@ -85,25 +80,22 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
 				$this->logger->error('Error processing order: ' . $e->getMessage());
 				return null;
 			}
-
 			if (!$order->canShip()) {
 				$this->logger->error('Cannot do shipment for order.');
 				return null;
 			}
-			
+
 			$itemsQty = [];
-
 			if ($data['status'] != "complete") {
-
 				$itemsQty = $this->_getShippedItemsQty($order, $data);
 				if (sizeof($itemsQty) == 0) {
 					$this->logger->error('Decimal qty is not allowed to ship in Magento');
 					return null;
 				}
 			}
-		
+
 			$comments = $this->_getCommentsData($order, $data);
-		
+
 			$shipment = $this->orderConverter->toShipment($order);
 			foreach ($itemsQty as $orderItemId => $qty) {
 				$orderItem = $order->getItemById($orderItemId);
@@ -122,22 +114,19 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
 							->setCarrierCode($data['carrier'])
 							->setTitle($data['service_description']);
 						$shipment->addTrack($track);
-					
+
 					}
-				}	
+				}
 			   }
 			catch(Exception $e)
 			{
 				$this->logger->error("Multi track : " . $e->getMessage());
 			}
-		
 			$shipment->register();
 			if ($comments) {
 				$shipment->addComment($comments);
 			}
-
 			$sourceCode =  $this->cronHelper->getCurrentSourceCode();
-
 		  // Create the sales channel (or sales event) based on your business logic
 			$salesChannel = [
 				'type' => SalesChannelInterface::TYPE_WEBSITE,
@@ -154,7 +143,6 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
             $this->logger->error('Error creating shipment:  - '. $e->getMessage());
             return null;
         }
-
         $email = $this->dataHelper->isSendEmailEnabled();
 	  // $email=TRUE;
         if ($email) {
@@ -169,26 +157,22 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
 		$result['shipment_increment_id'] = $shipment->getIncrementId();
         return json_encode($result, 1);
     }
-
     protected function _getShippedItemsQty($order, $data)
     {
 		//$this->logger->error("Items");
         $orderItems = $order->getAllVisibleItems();
 		$itemShippedQty = [];
 		$itemReference = [];
-
 		// Map order items by their SKU or any unique identifier
 		foreach ($orderItems as $orderItem) {
 			$itemReference[$orderItem->getSku()] = $orderItem->getItemId();
 		}
-
 		// Aggregate quantities from the data provided by external sources or shipment data
 		foreach ($data['packages'] as $package) {
 			foreach ($package['items'] as $item) {
 				// Using SKU to match, you can switch to other unique identifiers if needed
 				$sku = $item['order_item_sku'];
 				$itemId = $itemReference[$sku] ?? null;
-
 				if ($itemId) {
 					if (isset($itemShippedQty[$itemId])) {
 						$itemShippedQty[$itemId] += floatval($item['quantity']);
@@ -198,28 +182,22 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
 				}
 			}
 		}
-
 		// Round fractional quantities and remove items with zero quantity
 		foreach ($itemShippedQty as $itemId => $quantity) {
 			$fraction = fmod($quantity, 1);
 			$wholeNumber = intval($quantity);
-
 			if ($fraction >= 0.9999) {
 				$quantity = $wholeNumber + round($fraction);
 			} else {
 				$quantity = $wholeNumber;
 			}
-
 			$itemShippedQty[$itemId] = $quantity;
-
 			if ($itemShippedQty[$itemId] == 0) {
 				unset($itemShippedQty[$itemId]);
 			}
 		}
-
 		return $itemShippedQty;
     }
-
     protected function _getCommentsData($order, $data)
     {
 		$orderComments = [];
@@ -230,7 +208,6 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
 			$orderComments[$orderItem->getSku()]['sku'] = $orderItem->getSku();
 			$orderComments[$orderItem->getSku()]['name'] = $orderItem->getName();
 		}
-
 		// Get lot data of order items
 		foreach ($data['items'] as $item) {
 			if (isset($orderComments[$item['sku']])) {
@@ -239,7 +216,6 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
 				}
 			}
 		}
-
 		// Get collected data of packages from shipment packages
 		foreach ($data['packages'] as $package) {
 			// Mapping internal order_item_id & SKU to Magento SKU for collected data
@@ -247,7 +223,6 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
 			foreach ($package['items'] as $item) {
 				$orderItems[$item['order_item_id']] = $item['sku'];
 			}
-
 			// Adding package data value under relevant Order Item
 			foreach ($package['package_data'] as $packageData) {
 				if (isset($orderItems[$packageData['order_item_id']])) {
@@ -259,10 +234,8 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
 				}
 			}
 		}
-
 		// Format array to discard indexes
 		$comments = array_values($orderComments);
-
 		// Format comments data into yaml format if yaml plugin is configured
 		if (function_exists('yaml_emit')) {
 			return yaml_emit($comments);

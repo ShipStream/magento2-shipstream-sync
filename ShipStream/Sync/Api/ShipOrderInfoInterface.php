@@ -4,9 +4,7 @@
  * See COPYING.txt for license details.
  */
 declare(strict_types=1);
-
 namespace ShipStream\Sync\Api;
-
 interface ShipOrderInfoInterface
 {
   /**
@@ -16,4 +14,3 @@ interface ShipOrderInfoInterface
 	 */
     public function info($inc_id);
 }
-

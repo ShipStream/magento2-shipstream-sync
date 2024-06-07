@@ -4,7 +4,6 @@
  * See COPYING.txt for license details.
  */
 declare(strict_types=1);
-
 namespace ShipStream\Sync\Model;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
@@ -12,7 +11,6 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Psr\Log\LoggerInterface;
 use Magento\Framework\Session\SessionManagerInterface;
 use Magento\Framework\DB\Transaction;
-
 class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCommentsInterface
 {
     /**
@@ -25,11 +23,9 @@ class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCom
      * @var SearchCriteriaBuilder
      */
     protected $searchCriteriaBuilder;
-
     /**
      * Constructor to inject dependencies
      */
-
     public function __construct(
         OrderRepositoryInterface $orderRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder,
@@ -42,27 +38,24 @@ class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCom
 		$this->logger = $logger;
 		$this->session = $session;
 		 $this->transaction = $transaction;
-    }	
-	
+    }
 	/**
      * {@inheritdoc}
      */
 	public function addComment($orderIncrementId, $orderStatus, $comment=NULL)
     {
         try {
-			 
             // Build the search criteria to find the order by increment ID
 			$searchCriteria = $this->searchCriteriaBuilder
 				->addFilter('increment_id', $orderIncrementId, 'eq')
 				->create();
-
 				// Retrieve the list of orders matching the search criteria
 				$orderList = $this->orderRepository->getList($searchCriteria);
 				// Check if any order was found
 				if ($orderList->getTotalCount() > 0) {
-				
+
 				 $order = array_values($orderList->getItems())[0];
-				
+
 				// Add the comment
 				$statusHistory = $order->addStatusHistoryComment($comment);
 				$statusHistory->setIsCustomerNotified(false);
@@ -74,9 +67,9 @@ class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCom
 				 $order->setStatus($orderStatus);
 					$order->save();
 				    // Save the changes to the order
-				
+
 				$this->logger->info("Order history updated : $orderIncrementId $orderStatus ".$order->getStatus() . " comment: ".$comment);
-				
+
 				return TRUE;
         } else {
             // Handle the case where no order with that increment ID is found
@@ -92,6 +85,6 @@ class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCom
             $this->logger->info("An error occurred: " . $e->getMessage());
 			return FALSE;
         }
-		
+
     }
 }

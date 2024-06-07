@@ -4,9 +4,7 @@
  * See COPYING.txt for license details.
  */
 declare(strict_types=1);
-
 namespace ShipStream\Sync\Helper;
-
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
 use Magento\Framework\App\Config\ScopeConfigInterface;
@@ -20,7 +18,6 @@ use Magento\InventoryApi\Api\Data\StockInterfaceFactory;
 use Magento\InventoryApi\Api\StockRepositoryInterface;
 use Magento\Framework\HTTP\Client\Curl;
 use Psr\Log\LoggerInterface;
-
 class Data extends AbstractHelper
 {
     protected $scopeConfig;
@@ -28,7 +25,6 @@ class Data extends AbstractHelper
      * @var SourceInterfaceFactory
      */
     private $sourceFactory;
-
     /**
      * @var SourceRepositoryInterface
      */
@@ -37,18 +33,14 @@ class Data extends AbstractHelper
      * @var StockInterfaceFactory
      */
     private $stockFactory;
-
     /**
      * @var StockRepositoryInterface
      */
     private $stockRepository;
-	
 	protected $logger;
 	protected $curl;
-
     const XML_PATH_SHIPSTREAM_GENERAL = 'shipstream/general/';
     const XML_PATH_SHIPSTREAM_SOURCE = 'source_section/custom_group/';
-
     public function __construct(
         Context $context,
         ScopeConfigInterface $scopeConfig,
@@ -70,7 +62,6 @@ class Data extends AbstractHelper
 		$this->curl = $curl;
 		$this->logger = $logger;
     }
-
     public function isSyncEnabled()
     {
         return $this->scopeConfig->isSetFlag(
@@ -78,7 +69,6 @@ class Data extends AbstractHelper
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         );
     }
-
     public function isSendEmailEnabled()
     {
         return $this->scopeConfig->isSetFlag(
@@ -92,8 +82,7 @@ class Data extends AbstractHelper
 		{
 			$flag_code='ShipStream_Sync/'.$flagCode;
 			$flag = $this->flagFactory->create(['data' => ['flag_code' => $flag_code]]);
-			$flag->loadSelf(); 
-			  
+			$flag->loadSelf();
 			 if(!$flag->getFlagData())
 			 {
 				$flag->setFlagData($value);
@@ -101,42 +90,33 @@ class Data extends AbstractHelper
 			 else
 			 {
 				$flag->setFlagData($value);
-				
 			 }
 			$flag->save();
 			if($source_name==null)
 			{
-				return TRUE;	
+				return TRUE;
 			}
-				
 				//return $flag_code;
 			 //Create source and stock by reading the ShipStream Sync integration config namespace
 			  /** @var SourceInterface $source */
-			
 				$source = $this->sourceFactory->create();
 				$source->setSourceCode($source_code);
 				$source->setName($source_name);
 				$source->setEnabled(true);
 				$source->setCountryId('US');
-				$source->setPostcode('00001'); 
+				$source->setPostcode('00001');
 				$source->setUseDefaultCarrierConfig(true);
-					
 				try {
-				
 					$this->sourceRepository->save($source);
-					
 				} catch (Exception $e) {
 					$this->logger->error("Error on set config".$e->getMessage());
 					throw new \Exception('Failed to save source: ' . $e->getMessage());
 					return FALSE;
 				}
-			
 				//Create stock
-				
 				/** @var StockInterface $stock */
 					$stock = $this->stockFactory->create(); // Instantiate a stock object
 					$stock->setName($stock_name);
-
 				try {
 					$this->stockRepository->save($stock);
 				} catch (Exception $e) {
@@ -144,7 +124,6 @@ class Data extends AbstractHelper
 					throw new \Exception('Failed to save stock: ' . $e->getMessage());
 					return FALSE;
 				}
-			 
 			return TRUE;
 		}
 		else
@@ -157,7 +136,7 @@ class Data extends AbstractHelper
     {
 		$flag_code='ShipStream_Sync/'.$flagCode;
 		$flag = $this->flagFactory->create(['data' => ['flag_code' => $flag_code]]);
-		$flag->loadSelf(); 
+		$flag->loadSelf();
 		 if($flag->getFlagData())
 		 {
 			return $flag->getFlagData();
@@ -188,7 +167,6 @@ class Data extends AbstractHelper
 				$apiUrl = str_replace('{{method}}', $method, $apiUrl);
 				  // Append query parameters
 				// Prepare data to be sent in the POST request
-				
 				$this->curl->setOption(CURLOPT_RETURNTRANSFER, TRUE);
 				$this->curl->setOption(CURLOPT_TIMEOUT, 300); // Wait up to 30 seconds for a response
 				$this->curl->setOption(CURLOPT_VERBOSE, true);
@@ -198,14 +176,11 @@ class Data extends AbstractHelper
 						'Accept: application/json',
 					];
 				$this->curl->setOption(CURLOPT_HTTPHEADER, $headers);
-				
-				
 				if(!empty($data))
 				{
 					$separator = strpos($apiUrl, '?') === false ? '?' : '&';
 					$apiUrl .= $separator.http_build_query($data, '', '&');
 				}
-				
 				$this->curl->get($apiUrl);
 				$response = $this->curl->getBody();
 				$this->logger->error(" Callback Method: ".$method." Response ".$response);
@@ -213,10 +188,8 @@ class Data extends AbstractHelper
 				{
 				// Example combined output as a string
 					$combinedOutput = $response;
-
 					// Use a regular expression to extract the JSON part
 					preg_match('/\{"status":"[^"]+"\}/', $combinedOutput, $matches);
-
 					// Check if we found a match and decode the JSON part
 					if (!empty($matches)) {
 						$jsonString = $matches[0];
@@ -231,7 +204,6 @@ class Data extends AbstractHelper
 						 $this->logger->error("No JSON string found in the output.\n");
 						 return FALSE;
 					}
-					
 				}
 				return json_decode($response, TRUE);
 			}

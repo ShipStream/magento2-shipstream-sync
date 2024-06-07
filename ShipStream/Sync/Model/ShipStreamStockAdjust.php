@@ -5,7 +5,6 @@
  */
 declare(strict_types=1);
 namespace ShipStream\Sync\Model;
-
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\InventoryApi\Api\Data\SourceItemInterfaceFactory;
 use Magento\InventoryApi\Api\SourceItemsSaveInterface;
@@ -14,8 +13,6 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Psr\Log\LoggerInterface;
 use ShipStream\Sync\Model\Cron;
-
-
 class ShipStreamStockAdjust implements \ShipStream\Sync\Api\ShipStreamStockAdjustInterface
 {
 	protected $productRepository;
@@ -25,7 +22,6 @@ class ShipStreamStockAdjust implements \ShipStream\Sync\Api\ShipStreamStockAdjus
 	private $searchCriteriaBuilder;
     protected $logger;
 	protected $cronHelper;
-
    public function __construct(
         ProductRepositoryInterface $productRepository,
         SourceItemInterfaceFactory $sourceItemFactory,
@@ -43,7 +39,6 @@ class ShipStreamStockAdjust implements \ShipStream\Sync\Api\ShipStreamStockAdjus
         $this->logger = $logger;
 		 $this->cronHelper = $cronHelper;
     }
-
 	/**
      * {@inheritdoc}
     */
@@ -59,12 +54,11 @@ class ShipStreamStockAdjust implements \ShipStream\Sync\Api\ShipStreamStockAdjus
 					->addFilter('source_code', $sourceCode, 'eq')
 					->create();
 				$sourceItems = $this->sourceItemRepository->getList($searchCriteria)->getItems();
-				
+
 				if (empty($sourceItems)) {
 					throw new NoSuchEntityException(__('No source item found for SKU: %1 at source: %2', $productSku, $sourceCode));
 					return false;
 				}
-
 				// Assume single source item; adjust for multiple as needed
 				if (!empty($sourceItems)) {
 					$sourceItem = array_shift($sourceItems); // Assuming there's only one item per sku and source code
@@ -73,15 +67,13 @@ class ShipStreamStockAdjust implements \ShipStream\Sync\Api\ShipStreamStockAdjus
 				$newQty = $oldQty + $delta;
 				$sourceItem->setQuantity($newQty);
 				$sourceItem->save();
-								
+
 				if ($newQty <= 0) {
 					$sourceItem->setStatus(\Magento\InventoryApi\Api\Data\SourceItemInterface::STATUS_OUT_OF_STOCK);
 				} else {
 					$sourceItem->setStatus(\Magento\InventoryApi\Api\Data\SourceItemInterface::STATUS_IN_STOCK);
 				}
-
 				// Save the adjusted source item
-
 			} catch (NoSuchEntityException $e) {
 				$this->logger->error('Product not found: ' . $e->getMessage());
 				return false;
@@ -89,7 +81,6 @@ class ShipStreamStockAdjust implements \ShipStream\Sync\Api\ShipStreamStockAdjus
 				$this->logger->error('Error adjusting stock: ' . $e->getMessage());
 				return false;
 			}
-
         return true;
 	}
 }

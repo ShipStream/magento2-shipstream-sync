@@ -4,23 +4,19 @@
  * See COPYING.txt for license details.
  */
 declare(strict_types=1);
-
 namespace ShipStream\Sync\Model;
-
 use Magento\Sales\Model\ResourceModel\Order\CollectionFactory;
 use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\Search\FilterGroupBuilder;
 use Zend_Db_Select;
 use Psr\Log\LoggerInterface;
-
 class ShipStreamOrderFields implements \ShipStream\Sync\Api\ShipStreamOrderFieldsInterface
 {
 	protected $orderCollectionFactory;
     protected $filterBuilder;
     protected $searchCriteriaBuilder;
     protected $filterGroupBuilder;
-
     /**
      * Retrieve array of columns in order flat table.
      *
@@ -40,8 +36,7 @@ class ShipStreamOrderFields implements \ShipStream\Sync\Api\ShipStreamOrderField
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->filterGroupBuilder = $filterGroupBuilder;
 		$this->logger = $logger;
-    }	
-	
+    }
 	/**
      * {@inheritdoc}
      */
@@ -51,14 +46,11 @@ class ShipStreamOrderFields implements \ShipStream\Sync\Api\ShipStreamOrderField
 			$data = new \stdClass();
 			$data->result=$filtersInput;
 			$params = json_decode($data->result, true);
-
 			 // Extract filters and columns from parameters
 			$filters = $params['filters'] ?? [];
 			$cols = $filters['cols'] ?? [];
-
 			// Create the order collection
 			$collection = $this->orderCollectionFactory->create();
-
 			// Apply date range filter if specified
 			if (!empty($filters['updated_at'])) {
 				$dateRange = $filters['updated_at'];
@@ -66,15 +58,12 @@ class ShipStreamOrderFields implements \ShipStream\Sync\Api\ShipStreamOrderField
 					$collection->addFieldToFilter('updated_at', ['from' => $dateRange['from'], 'to' => $dateRange['to']]);
 				}
 			}
-
 			// Apply status filter if specified
 			if (!empty($filters['status']) && !empty($filters['status']['in'])) {
 				$collection->addFieldToFilter('status', ['in' => $filters['status']['in']]);
 			}
-
 			// Set the specific columns to be selected
 			$collection->getSelect()->reset(Zend_Db_Select::COLUMNS)->columns($cols);
-
 			// Iterate over the collection and gather the data
 			$orders = [];
 			foreach ($collection as $order) {
