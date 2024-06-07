@@ -6,7 +6,7 @@ class ActivationButton extends Field
 {
     /**
      * @param AbstractElement $element
-     * @return string
+     * @return bool
      */
     protected function _getElementHtml(AbstractElement $element)
     {
