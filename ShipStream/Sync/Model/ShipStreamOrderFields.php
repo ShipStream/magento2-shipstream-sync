@@ -4,6 +4,7 @@
  * See COPYING.txt for license details.
  */
 declare(strict_types=1);
+
 namespace ShipStream\Sync\Model;
 use Magento\Sales\Model\ResourceModel\Order\CollectionFactory;
 use Magento\Framework\Api\FilterBuilder;
@@ -11,6 +12,7 @@ use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\Search\FilterGroupBuilder;
 use Zend_Db_Select;
 use Psr\Log\LoggerInterface;
+
 class ShipStreamOrderFields implements \ShipStream\Sync\Api\ShipStreamOrderFieldsInterface
 {
 	protected $orderCollectionFactory;
