@@ -4,6 +4,7 @@
  * See COPYING.txt for license details.
  */
 declare(strict_types=1);
+
 namespace ShipStream\Sync\Model;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Convert\Order as OrderConverter;
@@ -20,6 +21,7 @@ use Psr\Log\LoggerInterface;
 use ShipStream\Sync\Model\Cron;
 use ShipStream\Sync\Helper\Data;
 use Magento\Sales\Model\Order\Email\Sender\ShipmentSender;
+
 class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShipmentInterface
 {
     protected $orderRepository;
