@@ -4,6 +4,7 @@
  * See COPYING.txt for license details.
  */
 declare(strict_types=1);
+
 namespace ShipStream\Sync\Model;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\InventoryApi\Api\Data\SourceItemInterfaceFactory;
@@ -13,6 +14,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Psr\Log\LoggerInterface;
 use ShipStream\Sync\Model\Cron;
+
 class ShipStreamStockAdjust implements \ShipStream\Sync\Api\ShipStreamStockAdjustInterface
 {
 	protected $productRepository;
