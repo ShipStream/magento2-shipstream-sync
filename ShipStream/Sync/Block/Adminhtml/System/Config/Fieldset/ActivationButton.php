@@ -10,6 +10,6 @@ class ActivationButton extends Field
      */
     protected function _getElementHtml(AbstractElement $element)
     {
-    reutrn TRUE;
+        return TRUE;
     }
 }
