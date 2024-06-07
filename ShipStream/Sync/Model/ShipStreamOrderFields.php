@@ -15,7 +15,7 @@ use Psr\Log\LoggerInterface;
 
 class ShipStreamOrderFields implements \ShipStream\Sync\Api\ShipStreamOrderFieldsInterface
 {
-	protected $orderCollectionFactory;
+    protected $orderCollectionFactory;
     protected $filterBuilder;
     protected $searchCriteriaBuilder;
     protected $filterGroupBuilder;
