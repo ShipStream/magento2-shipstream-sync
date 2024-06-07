@@ -30,14 +30,14 @@ class Cron
 	protected $logger;
 	protected $order;
 	protected $scopeConfig;
-    private $resourceConnection;
-    private $storeManager;
-    private $stockResolver;
-    private $sourceItemRepository;
+        private $resourceConnection;
+        private $storeManager;
+        private $stockResolver;
+        private $sourceItemRepository;
 	private $searchCriteriaBuilder;
 	private $sourceItemInterface;
-    private $sourceItemFactory;
-    private $sourceItemsSave;
+        private $sourceItemFactory;
+        private $sourceItemsSave;
 	private $sourcesAssignedToStock;
     public function __construct(
 			ProductMetadataInterface $productMetadata,
