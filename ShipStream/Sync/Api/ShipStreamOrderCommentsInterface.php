@@ -6,6 +6,7 @@
 
 declare(strict_types=1);
 namespace ShipStream\Sync\Api;
+
 interface ShipStreamOrderCommentsInterface
 {
     /**

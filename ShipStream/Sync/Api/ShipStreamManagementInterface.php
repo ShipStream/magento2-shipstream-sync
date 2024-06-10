@@ -5,16 +5,17 @@
  */
 declare(strict_types=1);
 namespace ShipStream\Sync\Api;
+
 interface ShipStreamManagementInterface
 {
     /**
-     *GET for ShipStream api
+     * GET for ShipStream api
      *
      * @return string
      */
     public function syncInventory();
     /**
-    * POST for ShipStream api
+     * POST for ShipStream api
      * @param string $path
      * @param string $value
      * @param string $source

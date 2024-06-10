@@ -5,9 +5,10 @@
  */
 declare(strict_types=1);
 namespace ShipStream\Sync\Api;
+
 interface ShipStreamOrderFieldsInterface
 {
-	/**
+    /**
      * Retrieve array of columns in order flat table.
      *
      * @param string $filters
