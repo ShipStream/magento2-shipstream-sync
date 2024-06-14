@@ -183,20 +183,28 @@ class Data extends AbstractHelper
                     // Example combined output as a string
                     $combinedOutput = $response;
                     // Use a regular expression to extract the JSON part
-                    preg_match('/\{"status":"[^"]+"\}/', $combinedOutput, $matches);
-                    // Check if we found a match and decode the JSON part
-                    if (!empty($matches)) {
-                        $jsonString = $matches[0];
-                        $decodedJson = json_decode($jsonString);
-                        if ($decodedJson->status) {
-                        // Output the status from the JSON string
-                        //$this->logger->error("Status from JSON: " . $decodedJson->status . "\n");
-                            return $decodedJson->status;
+                    if($combinedOutput!='')
+                    {
+                        preg_match('/\{"status":"[^"]+"\}/', $combinedOutput, $matches);
+                        // Check if we found a match and decode the JSON part
+                        if (!empty($matches)) {
+                            $jsonString = $matches[0];
+                            $decodedJson = json_decode($jsonString);
+                            if ($decodedJson->status) {
+                            // Output the status from the JSON string
+                            //$this->logger->error("Status from JSON: " . $decodedJson->status . "\n");
+                                return $decodedJson->status;
+                            }
+                        } else {
+                            $this->logger->error("No JSON string found in the output.\n");
+                            return false;
                         }
-                    } else {
-                        $this->logger->error("No JSON string found in the output.\n");
-                        return false;
                     }
+                    else {
+                            $this->logger->error("No JSON string found in the output.\n");
+                            return false;
+                        }
+                    
                 }
                 return json_decode($response, true);
             } catch (Exception $e) {
