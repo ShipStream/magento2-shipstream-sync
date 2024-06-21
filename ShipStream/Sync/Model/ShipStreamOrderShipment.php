@@ -37,6 +37,7 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
     protected $cronHelper;
     protected $dataHelper;
     protected $shipmentSender;
+
     public function __construct(
         OrderRepositoryInterface $orderRepository,
         OrderConverter $orderConverter,
@@ -64,17 +65,20 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
         $this->dataHelper = $dataHelper;
         $this->shipmentSender = $shipmentSender;
     }
+
     public function createWithTracking($orderIncrementId, $dataJson)
     {
         try {
             $searchCriteria = $this->searchCriteriaBuilder
                 ->addFilter('increment_id', $orderIncrementId, 'eq')
                 ->create();
+
             $orderList = $this->orderRepository->getList($searchCriteria);
             if ($orderList->getTotalCount() == 0) {
                 $this->logger->error('Order does not exist.');
                 return null;
             }
+
             $order = current($orderList->getItems());
             $dataArray = json_decode($dataJson, true);
             $data = $dataArray['data'];
@@ -87,7 +91,7 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
             return null;
         }
 
-            $itemsQty = [];
+        $itemsQty = [];
         if ($data['status'] != "complete") {
             $itemsQty = $this->_getShippedItemsQty($order, $data);
             if (sizeof($itemsQty) == 0) {
@@ -96,9 +100,9 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
             }
         }
 
-            $comments = $this->_getCommentsData($order, $data);
+        $comments = $this->_getCommentsData($order, $data);
 
-            $shipment = $this->orderConverter->toShipment($order);
+        $shipment = $this->orderConverter->toShipment($order);
         foreach ($itemsQty as $orderItemId => $qty) {
             $orderItem = $order->getItemById($orderItemId);
             if ($orderItem) {
@@ -115,50 +119,51 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
                         ->setCarrierCode($data['carrier'])
                         ->setTitle($data['service_description']);
                     $shipment->addTrack($track);
-
                 }
             }
         } catch (Exception $e) {
             $this->logger->error("Multi track : " . $e->getMessage());
         }
-            $shipment->register();
+
+        $shipment->register();
         if ($comments) {
             $shipment->addComment($comments);
         }
-            $sourceCode =  $this->cronHelper->getCurrentSourceCode();
-          // Create the sales channel (or sales event) based on your business logic
-            $salesChannel = [
-                'type' => SalesChannelInterface::TYPE_WEBSITE,
-                'code' => $order->getStore()->getWebsite()->getCode()
-            ];
-            $transaction = $this->transactionFactory->create();
+
+        $sourceCode =  $this->cronHelper->getCurrentSourceCode();
+        // Create the sales channel (or sales event) based on your business logic
+        $salesChannel = [
+            'type' => SalesChannelInterface::TYPE_WEBSITE,
+            'code' => $order->getStore()->getWebsite()->getCode()
+        ];
+        $transaction = $this->transactionFactory->create();
+        try {
+            $shipment->getExtensionAttributes()->setSourceCode($sourceCode);
+            $transaction->addObject($shipment)
+                ->addObject($order)
+                ->save();
+            $this->logger->info('Shipment created successfully for order ID ' . $order->getIncrementId());
+        } catch (\Exception $e) {
+            $this->logger->error('Error creating shipment:  - '. $e->getMessage());
+            return null;
+        }
+        $email = $this->dataHelper->isPropertyEnabled('send_shipment_email');
+
+        if ($email) {
             try {
-                $shipment->getExtensionAttributes()->setSourceCode($sourceCode);
-                $transaction->addObject($shipment)
-                        ->addObject($order)
-                        ->save();
-                $this->logger->info('Shipment created successfully for order ID ' . $order->getIncrementId());
+                $this->shipmentSender->send($shipment);
+                $shipment->setEmailSent(true);
+                $shipment->save();
             } catch (\Exception $e) {
-                $this->logger->error('Error creating shipment:  - '. $e->getMessage());
-                return null;
+                $this->logger->error('Error sending shipment email: ' . $e->getMessage());
             }
-            $email = $this->dataHelper->isSendEmailEnabled();
-      // $email=TRUE;
-            if ($email) {
-                try {
-                    $this->shipmentSender->send($shipment);
-                    $shipment->setEmailSent(true);
-                    $shipment->save();
-                } catch (\Exception $e) {
-                    $this->logger->error('Error sending shipment email: ' . $e->getMessage());
-                }
-            }
-            $result['shipment_increment_id'] = $shipment->getIncrementId();
-            return json_encode($result, 1);
+        }
+        $result['shipment_increment_id'] = $shipment->getIncrementId();
+        return json_encode($result, 1);
     }
+
     protected function _getShippedItemsQty($order, $data)
     {
-        //$this->logger->error("Items");
         $orderItems = $order->getAllVisibleItems();
         $itemShippedQty = [];
         $itemReference = [];
@@ -185,10 +190,9 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
         foreach ($itemShippedQty as $itemId => $quantity) {
             $fraction = fmod($quantity, 1);
             $wholeNumber = intval($quantity);
+            $quantity = $wholeNumber;
             if ($fraction >= 0.9999) {
                 $quantity = $wholeNumber + round($fraction);
-            } else {
-                $quantity = $wholeNumber;
             }
             $itemShippedQty[$itemId] = $quantity;
             if ($itemShippedQty[$itemId] == 0) {
@@ -197,10 +201,10 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
         }
         return $itemShippedQty;
     }
+
     protected function _getCommentsData($order, $data)
     {
         $orderComments = [];
-        //$this->logger->error("comments");
         // Get Item name & SKU from Magento order items
         $orderItemsData = $order->getAllVisibleItems(); // Use getAllVisibleItems to avoid child items of configurable or bundled products
         foreach ($orderItemsData as $orderItem) {
@@ -238,8 +242,7 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
         // Format comments data into yaml format if yaml plugin is configured
         if (function_exists('yaml_emit')) {
             return yaml_emit($comments);
-        } else {
-            return json_encode($comments, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         }
+        return json_encode($comments, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 }

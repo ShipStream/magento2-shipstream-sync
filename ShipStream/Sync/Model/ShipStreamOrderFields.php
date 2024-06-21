@@ -19,6 +19,7 @@ class ShipStreamOrderFields implements \ShipStream\Sync\Api\ShipStreamOrderField
     protected $filterBuilder;
     protected $searchCriteriaBuilder;
     protected $filterGroupBuilder;
+
     /**
      * Retrieve array of columns in order flat table.
      *
@@ -39,6 +40,7 @@ class ShipStreamOrderFields implements \ShipStream\Sync\Api\ShipStreamOrderField
         $this->filterGroupBuilder = $filterGroupBuilder;
         $this->logger = $logger;
     }
+
     /**
      * {@inheritdoc}
      */
@@ -46,7 +48,7 @@ class ShipStreamOrderFields implements \ShipStream\Sync\Api\ShipStreamOrderField
     {
         try {
             $data = new \stdClass();
-            $data->result=$filtersInput;
+            $data->result = $filtersInput;
             $params = json_decode($data->result, true);
              // Extract filters and columns from parameters
             $filters = $params['filters'] ?? [];

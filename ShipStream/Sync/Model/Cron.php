@@ -81,6 +81,7 @@ class Cron
     {
         return $this->fullInventorySync(false);
     }
+
     /**
      * {@inheritdoc}
      */
@@ -90,26 +91,27 @@ class Cron
         $stock = $this->stockResolver->execute('website', $websiteCode);
         return $stock->getStockId();
     }
+
     /**
      * {@inheritdoc}
      */
     public function getCurrentSourceCode()
     {
-        $stockId=$this->getSourceStockId();
+        $stockId = $this->getSourceStockId();
         $tableName = $this->resourceConnection->getTableName('inventory_source_stock_link');
         $select = $this->resourceConnection->select()
             ->from($tableName, 'source_code')
             ->where('stock_id = ?', $stockId);
         $sourceCode = $this->resourceConnection->fetchOne($select); // fetchOne to get the first result directly
-        //$this->logger->info("Source".$sourceCode);
+
         return $sourceCode;
     }
+
     /**
      * {@inheritdoc}
      */
     public function getSourceItemSku($sku, $sourceCode)
     {
-        //$this->logger->info("sku".$sku.":"."source:".$sourceCode);
         $searchCriteria = $this->searchCriteriaBuilder
             ->addFilter('sku', $sku, 'eq')
             ->addFilter('source_code', $sourceCode, 'eq')
@@ -120,18 +122,20 @@ class Cron
             return $sourceItem;
         }
     }
+
     /**
      * {@inheritdoc}
      */
     public function _getSourceInventory()
     {
         try {
-            $data=$this->dataHelper->callback('inventoryWithLock');
+            $data = $this->dataHelper->callback('inventoryWithLock');
             return empty($data['skus']) ? [] : $data['skus'];
         } catch (Exception $e) {
-                $this->logger->error("Error in sync inventory:".$e->getMessage());
+            $this->logger->error("Error in sync inventory:" . $e->getMessage());
         }
     }
+
      /**
       * Synchronize Magento inventory with the warehouse inventory
       *
@@ -140,25 +144,28 @@ class Cron
       */
     public function fullInventorySync($sleep = true)
     {
-        if (!$this->dataHelper->isSyncEnabled()) {
+        if (!$this->dataHelper->isPropertyEnabled('realtime_sync')) {
             return;
         }
         if ($sleep) {
             sleep(random_int(0, 60)); // Avoid stampeding the server
         }
+
         try {
             $this->resourceConnection->beginTransaction();
             $this->logger->info('Beginning inventory sync..');
         } catch (Exception $e) {
             $this->logger->info($e->getMessage());
         }
-                $_source = $this->_getSourceInventory();
+        
+        $_source = $this->_getSourceInventory();
         try {
             if (!empty($_source) && is_array($_source)) {
                 foreach (array_chunk($_source, 5000, true) as $source) {
                     try {
-                            $this->logger->info("Inside Inventory update..");
-                            $target = $this->_getTargetInventory(array_keys($source));
+                        $this->logger->info("Inside Inventory update..");
+                        $target = $this->_getTargetInventory(array_keys($source));
+
                         // Get qty of order items that are in processing state and not submitted to shipstream
                         $processingQty = $this->_getProcessingOrderItemsQty(array_keys($source));
                         foreach ($_source as $sku => $qty) {
@@ -178,7 +185,7 @@ class Cron
                             try {
                                 $sourceCode=$this->getCurrentSourceCode();
                                 $this->logger->info('First Source Code: ' . $sourceCode." item ".$target[$sku]['sourceItemId']);
-                                  /** @var SourceItemInterface $sourceItem */
+                                /** @var SourceItemInterface $sourceItem */
                                 $sourceItem = $this->getSourceItemSku($sku, $sourceCode);
                                 $oldQty = $sourceItem->getQuantity();
                                 $sourceItem->setQuantity($syncQty);
@@ -204,6 +211,7 @@ class Cron
             throw $exception;
         }
     }
+
     /**
      * Retrieve Magento inventory
      *
@@ -231,6 +239,7 @@ class Cron
               $this->logger->info($e->getMessage());
         }
     }
+
      /**
       * Retrieve Magento order items qty that are in processing state and not submitted to shipstream
       * @param array $skus

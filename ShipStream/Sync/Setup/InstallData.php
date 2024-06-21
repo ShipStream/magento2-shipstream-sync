@@ -26,17 +26,18 @@ class InstallData implements InstallDataInterface
         // Submit order to ShipStream when status transitions to Ready to Ship
         $installer = $setup;
         $installer->startSetup();
-        $data[] = ['status' => 'ready_to_ship', 'label' => 'Ready to Ship'];
-        $data[] = ['status' => 'failed_to_submit', 'label' => 'Failed to Submit'];
-        $data[] = ['status' => 'submitted', 'label' => 'Submitted'];
+        $data = [
+            ['status' => 'ready_to_ship', 'label' => 'Ready to Ship'],
+            ['status' => 'failed_to_submit', 'label' => 'Failed to Submit'],
+            ['status' => 'submitted', 'label' => 'Submitted']
+        ];
         $setup->getConnection()->insertArray($setup->getTable('sales_order_status'), ['status', 'label'], $data);
-        $setup->getConnection()->insertArray(
-            $setup->getTable('sales_order_status_state'),
+        $setup->getConnection()->insertArray($setup->getTable('sales_order_status_state'),
             ['status', 'state', 'is_default','visible_on_front'],
             [
-            ['ready_to_ship','processing', '0', '1'],
-            ['failed_to_submit', 'processing', '0', '1'],
-            ['submitted', 'processing', '0', '1']
+                ['ready_to_ship','processing', '0', '1'],
+                ['failed_to_submit', 'processing', '0', '1'],
+                ['submitted', 'processing', '0', '1']
             ]
         );
         $setup->endSetup();

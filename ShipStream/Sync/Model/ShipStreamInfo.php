@@ -38,6 +38,7 @@ class ShipStreamInfo implements \ShipStream\Sync\Api\ShipStreamInfoInterface
         $this->logger = $logger;
         $this->scopeConfig = $scopeConfig;
     }
+
     /**
      * {@inheritdoc}
      */
@@ -47,11 +48,9 @@ class ShipStreamInfo implements \ShipStream\Sync\Api\ShipStreamInfoInterface
             $moduleName = 'ShipStream_Sync';
             $moduleInfo = [];
             $modules = $this->moduleList->getNames();
-            foreach ($modules as $module) {
-                if ($module == $moduleName) {
-                    $moduleInfo['setup_version'] = $this->moduleList->getOne($module)['setup_version'];
-                    break;
-                }
+            if (in_array($moduleName, $modules)) {
+                $indexOfModule = array_search($moduleName, $modules);
+                $moduleInfo['setup_version'] = $this->moduleList->getOne($modules[$indexOfModule])['setup_version'];
             }
             $result = [];
             $result['shipstream_sync_version'] = isset($moduleInfo['setup_version']) ? $moduleInfo['setup_version'] : null;

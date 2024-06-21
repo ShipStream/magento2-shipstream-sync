@@ -14,9 +14,11 @@ use Magento\Sales\Api\ShipmentRepositoryInterface;
 use Magento\Sales\Api\Data\ShipmentTrackInterfaceFactory;
 use Magento\Sales\Api\Data\ShipmentCommentInterfaceFactory;
 use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Psr\Log\LoggerInterface;
+use ShipStream\Sync\Api\ShipOrderInfoInterface;
 
-class ShipOrderInfo implements \ShipStream\Sync\Api\ShipOrderInfoInterface
+class ShipOrderInfo implements ShipOrderInfoInterface
 {
     protected $shipmentRepository;
     protected $shipmentTrackFactory;
@@ -48,21 +50,25 @@ class ShipOrderInfo implements \ShipStream\Sync\Api\ShipOrderInfoInterface
             // Fetch the order using the increment ID
             $orderCriteria = $this->searchCriteriaBuilder
                 ->addFilter('increment_id', $orderIncrementId, 'eq')
-                //->addFilter('status', 'ready_to_ship', 'eq') // Add status filter here
                 ->create();
+
             $orderList = $this->orderRepository->getList($orderCriteria);
             $order = current($orderList->getItems());
+
             if (!$order) {
-                throw new \Magento\Framework\Exception\NoSuchEntityException(__('No order found with increment ID %1', $orderIncrementId));
+                throw new NoSuchEntityException(__('No order found with increment ID %1', $orderIncrementId));
             }
+
             // Fetch the shipments for the retrieved order
             $shipmentCriteria = $this->searchCriteriaBuilder
                 ->addFilter('order_id', $order->getEntityId(), 'eq')
                 ->create();
+
             $shipments = $this->shipmentRepository->getList($shipmentCriteria);
             $shipmentData = [];
             $result = [];
             //If no shipment created and only the orders data available
+            // TODO: results or shipments? results is defined as empty array above
             if (empty($result)) {
                 $items = [];
                 foreach ($order->getItems() as $item) {

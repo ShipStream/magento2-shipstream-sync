@@ -22,10 +22,12 @@ class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCom
     protected $orderRepository;
     protected $session;
     protected $transaction;
+
     /**
      * @var SearchCriteriaBuilder
      */
     protected $searchCriteriaBuilder;
+
     /**
      * Constructor to inject dependencies
      */
@@ -42,6 +44,7 @@ class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCom
         $this->session = $session;
          $this->transaction = $transaction;
     }
+
     /**
      * {@inheritdoc}
      */
@@ -55,36 +58,35 @@ class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCom
                 // Retrieve the list of orders matching the search criteria
                 $orderList = $this->orderRepository->getList($searchCriteria);
                 // Check if any order was found
-            if ($orderList->getTotalCount() > 0) {
-
-                $order = array_values($orderList->getItems())[0];
-
-                // Add the comment
-                $statusHistory = $order->addStatusHistoryComment($comment);
-                $statusHistory->setIsCustomerNotified(false);
-                $statusHistory->setIsVisibleOnFront(false);
-                $statusHistory->setStatus($orderStatus);
-                $statusHistory->save();
-                $order->addStatusHistory($statusHistory);
-                $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING);
-                $order->setStatus($orderStatus);
-                $order->save();
-                // Save the changes to the order
-
-                $this->logger->info("Order history updated : $orderIncrementId $orderStatus ".$order->getStatus() . " comment: ".$comment);
-
-                return true;
-            } else {
+            if ($orderList->getTotalCount() == 0) {
                 // Handle the case where no order with that increment ID is found
                 $this->logger->info("Order not found for increment ID: $orderIncrementId");
                 return false;
             }
+            $order = array_values($orderList->getItems())[0];
+
+            // Add the comment
+            $statusHistory = $order->addStatusHistoryComment($comment);
+            $statusHistory->setIsCustomerNotified(false);
+            $statusHistory->setIsVisibleOnFront(false);
+            $statusHistory->setStatus($orderStatus);
+            $statusHistory->save();
+
+            $order->addStatusHistory($statusHistory);
+            $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING);
+            $order->setStatus($orderStatus);
+            $order->save();
+            // Save the changes to the order
+
+            $this->logger->info("Order history updated : $orderIncrementId $orderStatus ".$order->getStatus() . " comment: ".$comment);
+
+            return true;
         } catch (NoSuchEntityException $e) {
             // Handle the case where the order does not exist
             $this->logger->info("Order not found: " . $e->getMessage());
             return false;
         } catch (\Exception $e) {
-      // Handle other exceptions
+            // Handle other exceptions
             $this->logger->info("An error occurred: " . $e->getMessage());
             return false;
         }

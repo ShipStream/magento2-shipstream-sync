@@ -16,6 +16,7 @@ class OrderSaveCommitAfter implements ObserverInterface
     protected $dataHelper;
     protected $logger;
     protected $session;
+
     public function __construct(
         OrderRepositoryInterface $orderRepository,
         Data $dataHelper,
@@ -27,6 +28,7 @@ class OrderSaveCommitAfter implements ObserverInterface
         $this->logger = $logger;
         $this->session = $session;
     }
+
     /**
      * Execute observer
      *
@@ -46,6 +48,7 @@ class OrderSaveCommitAfter implements ObserverInterface
         if ($class == 'ShipStream\Sync\Model\ShipStreamOrderComments') {
             return;
         }
+
         /** @var OrderStatusHistory $history */
         $history = $observer->getEvent()->getData('data_object');
         if ($history) {
@@ -57,19 +60,17 @@ class OrderSaveCommitAfter implements ObserverInterface
                     && $order->getState() == \Magento\Sales\Model\Order::STATE_PROCESSING
                     && ($order->getStatus() == 'ready_to_ship' || $order->getStatus() == 'submitted')
                 ) {
-                    // $this->logger->info('Order ID:ss ' . $order->getIncrementId());
                     $order->addStatusHistoryComment('Changed order status to "Complete" as the order is virtual.')
                         ->setIsCustomerNotified(false);
                     $this->orderRepository->save($order);
                 }
-                if ($this->dataHelper->isSyncEnabled()
+                if ($this->dataHelper->isPropertyEnabled('realtime_sync')
                     && !$order->getIsVirtual()
                     && $order->getState() == \Magento\Sales\Model\Order::STATE_PROCESSING
                     && $order->dataHasChangedFor('status')
                     && $order->getStatus() == 'ready_to_ship'
                 ) {
                     try {
-                        // $this->logger->info('Order ID: ' . $order->getIncrementId());
                         $statusFrom = $this->dataHelper->callback(
                             'syncOrder',
                             ['increment_id' => $order->getIncrementId()]
@@ -79,8 +80,6 @@ class OrderSaveCommitAfter implements ObserverInterface
                             $order->save();
                         }
                         $this->logger->error("Order status after callback: " . $order->getStatus());
-                        //$this->logger->error("Order status of sync: ".$statuss);
-                        //$this->logger->error("Order save after status and comment update. order Id: ".$order->getIncrementId());
                     } catch (\Exception $e) {
                         $this->logger->critical($e);
                     }

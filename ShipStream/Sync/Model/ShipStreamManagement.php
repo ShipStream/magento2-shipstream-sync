@@ -37,6 +37,7 @@ class ShipStreamManagement implements \ShipStream\Sync\Api\ShipStreamManagementI
                 $this->logger = $logger;
                 $this->scopeConfig = $scopeConfig;
     }
+
     /**
      * {@inheritdoc}
      */
@@ -45,10 +46,10 @@ class ShipStreamManagement implements \ShipStream\Sync\Api\ShipStreamManagementI
         $result= $this->cron->syncInventory();
         if ($result) {
             return 'success';
-        } else {
-            return 'error';
         }
+        return 'error';
     }
+
     /**
      * {@inheritdoc}
      */
