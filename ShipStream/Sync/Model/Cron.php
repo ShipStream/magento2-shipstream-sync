@@ -101,7 +101,6 @@ class Cron
             ->from($tableName, 'source_code')
             ->where('stock_id = ?', $stockId);
         $sourceCode = $this->resourceConnection->fetchOne($select); // fetchOne to get the first result directly
-        //$this->logger->info("Source".$sourceCode);
         return $sourceCode;
     }
     /**
@@ -109,7 +108,6 @@ class Cron
      */
     public function getSourceItemSku($sku, $sourceCode)
     {
-        //$this->logger->info("sku".$sku.":"."source:".$sourceCode);
         $searchCriteria = $this->searchCriteriaBuilder
             ->addFilter('sku', $sku, 'eq')
             ->addFilter('source_code', $sourceCode, 'eq')
@@ -161,7 +159,7 @@ class Cron
                             $target = $this->_getTargetInventory(array_keys($source));
                         // Get qty of order items that are in processing state and not submitted to shipstream
                         $processingQty = $this->_getProcessingOrderItemsQty(array_keys($source));
-                        foreach ($_source as $sku => $qty) {
+                        foreach ($source as $sku => $qty) {
                             if (!isset($target[$sku])) {
                                 continue;
                             }
