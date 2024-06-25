@@ -7,7 +7,7 @@ This extension will have no effect until the corresponding plugin subscription h
 
 ### What functionality does this extension add to my Magento2/Magento store?
 
-- Adds a System > Configuration section to Services > ShipStream Sync
+- Adds a Stores-> Settings-> Configuration section to Services > ShipStream Sync
   - General > Enable Real-Time Order Sync
   - General > Send New Shipment Email
 - Adds three new order statuses: "Ready to Ship", "Failed to Submit" and "Submitted"
