@@ -66,6 +66,7 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
     //Create shipment and update tracking number
     public function createWithTracking($orderIncrementId, $dataJson)
     {
+        $result=[];
         try {
             $searchCriteria = $this->searchCriteriaBuilder
                 ->addFilter('increment_id', $orderIncrementId, 'eq')
