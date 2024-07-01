@@ -1,49 +1,42 @@
 <?php
-
 /**
  * Copyright ©  All rights reserved.
  * See COPYING.txt for license details.
  */
 
 declare(strict_types=1);
-
 namespace ShipStream\Sync\Model;
 
+use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Api\ShipmentRepositoryInterface;
-use Magento\Sales\Api\Data\ShipmentTrackInterfaceFactory;
-use Magento\Sales\Api\Data\ShipmentCommentInterfaceFactory;
-use Magento\Framework\Api\SearchCriteriaBuilder;
 use Psr\Log\LoggerInterface;
 
 class ShipOrderInfo implements \ShipStream\Sync\Api\ShipOrderInfoInterface
 {
     protected $shipmentRepository;
-    protected $shipmentTrackFactory;
-    protected $shipmentCommentFactory;
     protected $logger;
     protected $searchCriteriaBuilder;
     protected $orderRepository;
+
     public function __construct(
         OrderRepositoryInterface $orderRepository,
         ShipmentRepositoryInterface $shipmentRepository,
-        ShipmentTrackInterfaceFactory $shipmentTrackFactory,
-        ShipmentCommentInterfaceFactory $shipmentCommentFactory,
         LoggerInterface $logger,
         SearchCriteriaBuilder $searchCriteriaBuilder
     ) {
         $this->orderRepository = $orderRepository;
         $this->shipmentRepository = $shipmentRepository;
-        $this->shipmentTrackFactory = $shipmentTrackFactory;
-        $this->shipmentCommentFactory = $shipmentCommentFactory;
         $this->logger = $logger;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
     }
+
     /**
      * {@inheritdoc}
      */
     public function info($orderIncrementId)
     {
+        $result = [];
         try {
             // Fetch the order using the increment ID
             $orderCriteria = $this->searchCriteriaBuilder
@@ -59,23 +52,20 @@ class ShipOrderInfo implements \ShipStream\Sync\Api\ShipOrderInfoInterface
             $shipmentCriteria = $this->searchCriteriaBuilder
                 ->addFilter('order_id', $order->getEntityId(), 'eq')
                 ->create();
-            $shipments = $this->shipmentRepository->getList($shipmentCriteria);
             $shipmentData = [];
-            $result = [];
             //If no shipment created and only the orders data available
-            if (empty($result)) {
-                $items = [];
-                foreach ($order->getItems() as $item) {
-                    // Get product type
-                    $product = $item->getProduct();
-                    $productType = $product->getTypeId();
-                    $shipmentdata = $item->toArray();
-                    $shipmentdata['product_type'] = $productType;
-                    $items[] = $shipmentdata;
-                }
-                // Get shipping address details
-                $shippingAddress = $order->getShippingAddress();
-                $shippingAddressData = $shippingAddress ? [
+            $items = [];
+            foreach ($order->getItems() as $item) {
+                // Get product type
+                $product = $item->getProduct();
+                $productType = $product->getTypeId();
+                $shipmentdata = $item->toArray();
+                $shipmentdata['product_type'] = $productType;
+                $items[] = $shipmentdata;
+            }
+            // Get shipping address details
+            $shippingAddress = $order->getShippingAddress();
+            $shippingAddressData = $shippingAddress ? [
                     'firstname' => $shippingAddress->getFirstname(),
                     'lastname' => $shippingAddress->getLastname(),
                     'street' => implode(' ', $shippingAddress->getStreet()),
@@ -87,11 +77,11 @@ class ShipOrderInfo implements \ShipStream\Sync\Api\ShipOrderInfoInterface
                     'postcode' => $shippingAddress->getPostcode(),
                     // Add more address details as needed
                 ] : null;
-                // Get tracking information
-                $tracks = [];
-                // Get shipment comments
-                $comments = [];
-                $result[] = [
+            // Get tracking information
+            $tracks = [];
+            // Get shipment comments
+            $comments = [];
+            $result[] = [
                     'order_increment_id' => $orderIncrementId,
                     'increment_id' => $orderIncrementId,
                     'items' => $items,
@@ -102,10 +92,10 @@ class ShipOrderInfo implements \ShipStream\Sync\Api\ShipOrderInfoInterface
                     'tracks' => $tracks,
                     'comments' => $comments
                 ];
-            }
             return json_encode($result, 1);
-        } catch (Exception $e) {
-            $this->logger->info("Error in ShipOrderInfo :" . $e - getMessage());
+        } catch (\Exception $e) {
+            $this->logger->info((string)__("Error in ShipOrderInfo: %1", $e->getMessage()));
+            return json_encode($result, 1);
         }
     }
 }

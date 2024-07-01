@@ -9,8 +9,8 @@ namespace ShipStream\Sync\Api;
 interface ShipStreamOrderShipmentInterface
 {
     /**
-     * @param string $orderIncrementId
-     * @param string|mixed[] $data
+     * @param  string         $orderIncrementId
+     * @param  string|mixed[] $data
      * @return string|null
      */
     public function createWithTracking($orderIncrementId, $data);

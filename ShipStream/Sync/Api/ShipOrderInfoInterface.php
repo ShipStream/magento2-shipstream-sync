@@ -8,10 +8,11 @@ namespace ShipStream\Sync\Api;
 
 interface ShipOrderInfoInterface
 {
-  /**
-   * Check configuration method.
-   * @param string $inc_id
-   * @return string|mixed[]|array|int
-   */
+    /**
+     * Check configuration method.
+     *
+     * @param  string $inc_id
+     * @return string|mixed[]|array|int
+     */
     public function info($inc_id);
 }

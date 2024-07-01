@@ -4,15 +4,14 @@
  * See COPYING.txt for license details.
  */
 declare(strict_types=1);
-
 namespace ShipStream\Sync\Model;
 
-use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
-use Magento\Framework\Exception\NoSuchEntityException;
-use Psr\Log\LoggerInterface;
-use Magento\Framework\Session\SessionManagerInterface;
 use Magento\Framework\DB\Transaction;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Session\SessionManagerInterface;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Psr\Log\LoggerInterface;
 
 class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCommentsInterface
 {
@@ -21,6 +20,7 @@ class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCom
      */
     protected $orderRepository;
     protected $session;
+    protected $logger;
     protected $transaction;
     /**
      * @var SearchCriteriaBuilder
@@ -40,8 +40,9 @@ class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCom
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->logger = $logger;
         $this->session = $session;
-         $this->transaction = $transaction;
+        $this->transaction = $transaction;
     }
+
     /**
      * {@inheritdoc}
      */
@@ -52,13 +53,11 @@ class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCom
             $searchCriteria = $this->searchCriteriaBuilder
                 ->addFilter('increment_id', $orderIncrementId, 'eq')
                 ->create();
-                // Retrieve the list of orders matching the search criteria
-                $orderList = $this->orderRepository->getList($searchCriteria);
-                // Check if any order was found
+            // Retrieve the list of orders matching the search criteria
+            $orderList = $this->orderRepository->getList($searchCriteria);
+            // Check if any order was found
             if ($orderList->getTotalCount() > 0) {
-
                 $order = array_values($orderList->getItems())[0];
-
                 // Add the comment
                 $statusHistory = $order->addStatusHistoryComment($comment);
                 $statusHistory->setIsCustomerNotified(false);
@@ -70,22 +69,20 @@ class ShipStreamOrderComments implements \ShipStream\Sync\Api\ShipStreamOrderCom
                 $order->setStatus($orderStatus);
                 $order->save();
                 // Save the changes to the order
-
-                $this->logger->info("Order history updated : $orderIncrementId $orderStatus ".$order->getStatus() . " comment: ".$comment);
-
+                $this->logger->info(__('Order history updated: %1 %2 %3 comment: %4', $orderIncrementId, $orderStatus, $order->getStatus(), $comment));
                 return true;
             } else {
                 // Handle the case where no order with that increment ID is found
-                $this->logger->info("Order not found for increment ID: $orderIncrementId");
+                $this->logger->info(__("Order not found for increment ID : %1", $orderIncrementId));
                 return false;
             }
         } catch (NoSuchEntityException $e) {
             // Handle the case where the order does not exist
-            $this->logger->info("Order not found: " . $e->getMessage());
+            $this->logger->info(__("Order not found: %1", $e->getMessage()));
             return false;
         } catch (\Exception $e) {
-      // Handle other exceptions
-            $this->logger->info("An error occurred: " . $e->getMessage());
+            // Handle other exceptions
+            $this->logger->info(__("An error occurred: %1", $e->getMessage()));
             return false;
         }
     }

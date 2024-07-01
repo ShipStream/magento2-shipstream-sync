@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Copyright ©  All rights reserved.
  * See COPYING.txt for license details.
@@ -9,18 +8,17 @@ declare(strict_types=1);
 
 namespace ShipStream\Sync\Helper;
 
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\FlagFactory;
+use Magento\Framework\HTTP\Client\Curl;
 use Magento\InventoryApi\Api\Data\SourceInterface;
 use Magento\InventoryApi\Api\Data\SourceInterfaceFactory;
-use Magento\InventoryApi\Api\SourceRepositoryInterface;
-use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\InventoryApi\Api\Data\StockInterface;
 use Magento\InventoryApi\Api\Data\StockInterfaceFactory;
+use Magento\InventoryApi\Api\SourceRepositoryInterface;
 use Magento\InventoryApi\Api\StockRepositoryInterface;
-use Magento\Framework\HTTP\Client\Curl;
 use Psr\Log\LoggerInterface;
 
 class Data extends AbstractHelper
@@ -42,10 +40,16 @@ class Data extends AbstractHelper
      * @var StockRepositoryInterface
      */
     private $stockRepository;
+    /**
+     * @var FlagFactory
+     */
+    private $flagFactory;
+
     protected $logger;
     protected $curl;
     const XML_PATH_SHIPSTREAM_GENERAL = 'shipstream/general/';
     const XML_PATH_SHIPSTREAM_SOURCE = 'source_section/custom_group/';
+
     public function __construct(
         Context $context,
         ScopeConfigInterface $scopeConfig,
@@ -67,6 +71,7 @@ class Data extends AbstractHelper
         $this->curl = $curl;
         $this->logger = $logger;
     }
+
     public function isSyncEnabled()
     {
         return $this->scopeConfig->isSetFlag(
@@ -74,6 +79,7 @@ class Data extends AbstractHelper
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         );
     }
+
     public function isSendEmailEnabled()
     {
         return $this->scopeConfig->isSetFlag(
@@ -81,6 +87,7 @@ class Data extends AbstractHelper
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         );
     }
+
     public function setConfig($flagCode, $value, $source_name, $source_code, $stock_name)
     {
         if ($this->isSyncEnabled()) {
@@ -96,9 +103,10 @@ class Data extends AbstractHelper
             if ($source_name == null) {
                 return true;
             }
-            //return $flag_code;
             //Create source and stock by reading the ShipStream Sync integration config namespace
-            /** @var SourceInterface $source */
+            /**
+            * @var SourceInterface $source
+            */
             $source = $this->sourceFactory->create();
             $source->setSourceCode($source_code);
             $source->setName($source_name);
@@ -108,28 +116,31 @@ class Data extends AbstractHelper
             $source->setUseDefaultCarrierConfig(true);
             try {
                 $this->sourceRepository->save($source);
-            } catch (Exception $e) {
-                $this->logger->error("Error on set config" . $e->getMessage());
-                throw new \Exception('Failed to save source: ' . $e->getMessage());
+            } catch (\Exception $e) {
+                $this->logger->error(__("Error on set config: %1", $e->getMessage()));
+                throw new \Exception(__('Failed to save source: %1', $e->getMessage()));
                 return false;
             }
             //Create stock
-            /** @var StockInterface $stock */
+            /**
+                * @var StockInterface $stock
+            */
             $stock = $this->stockFactory->create(); // Instantiate a stock object
             $stock->setName($stock_name);
             try {
                 $this->stockRepository->save($stock);
-            } catch (Exception $e) {
-                $this->logger->error("Error on set config" . $e->getMessage());
-                throw new \Exception('Failed to save stock: ' . $e->getMessage());
+            } catch (\Exception $e) {
+                $this->logger->error(__("Error on set config: %1", $e->getMessage()));
+                throw new \Exception(__('Failed to save stock: %1', $e->getMessage()));
                 return false;
             }
             return true;
         } else {
-            $this->logger->error('Real time sync not enabled. Please check the config.');
+            $this->logger->error(__('Real time sync not enabled. Please check the config.'));
             return false;
         }
     }
+
     public function getConfig($flagCode)
     {
         $flag_code = 'ShipStream_Sync/' . $flagCode;
@@ -140,11 +151,12 @@ class Data extends AbstractHelper
         }
         return false;
     }
+
     /**
      * Perform request to the warehouse API
      *
-     * @param string $method
-     * @param array $data
+     * @param  string $method
+     * @param  array  $data
      * @return mixed
      */
     public function callback($method, $data = [])
@@ -153,11 +165,11 @@ class Data extends AbstractHelper
             try {
                 $apiUrl = urldecode($this->getConfig('warehouse_api_url'));
                 if (empty($apiUrl)) {
-                    $this->logger->error('The warehouse API URL is required.');
+                    $this->logger->error(__('The warehouse API URL is required.'));
                     return false;
                 }
                 if (false === strpos($apiUrl, '{{method}}')) {
-                    $this->logger->error('The warehouse API URL format is not valid.');
+                    $this->logger->error(__('The warehouse API URL format is not valid.'));
                     return false;
                 }
                 $apiUrl = str_replace('{{method}}', $method, $apiUrl);
@@ -178,40 +190,36 @@ class Data extends AbstractHelper
                 }
                 $this->curl->get($apiUrl);
                 $response = $this->curl->getBody();
-                $this->logger->error(" Callback Method: " . $method . " Response " . $response);
+                $this->logger->error(__('Callback Method: %1 Response %2', $method, $response));
                 if ($method == 'syncOrder') {
                     // Example combined output as a string
                     $combinedOutput = $response;
                     // Use a regular expression to extract the JSON part
-                    if($combinedOutput!='')
-                    {
+                    if ($combinedOutput!='') {
                         preg_match('/\{"status":"[^"]+"\}/', $combinedOutput, $matches);
                         // Check if we found a match and decode the JSON part
                         if (!empty($matches)) {
                             $jsonString = $matches[0];
                             $decodedJson = json_decode($jsonString);
                             if ($decodedJson->status) {
-                            // Output the status from the JSON string
-                            //$this->logger->error("Status from JSON: " . $decodedJson->status . "\n");
+                                // Output the status from the JSON string
                                 return $decodedJson->status;
                             }
                         } else {
-                            $this->logger->error("No JSON string found in the output.\n");
+                            $this->logger->error(__("No JSON string found in the output.\n"));
                             return false;
                         }
+                    } else {
+                        $this->logger->error(__("No JSON string found in the output.\n"));
+                        return false;
                     }
-                    else {
-                            $this->logger->error("No JSON string found in the output.\n");
-                            return false;
-                        }
-                    
                 }
                 return json_decode($response, true);
-            } catch (Exception $e) {
-                $this->logger->error($e->getMessage());
+            } catch (\Exception $e) {
+                $this->logger->error(__($e->getMessage()));
             }
         } else {
-            $this->logger->error('Real time sync not enabled. Please check the config.');
+            $this->logger->error(__('Real time sync not enabled. Please check the config.'));
             return false;
         }
     }

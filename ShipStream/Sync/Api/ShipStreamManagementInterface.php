@@ -16,11 +16,12 @@ interface ShipStreamManagementInterface
     public function syncInventory();
     /**
      * POST for ShipStream api
-     * @param string $path
-     * @param string $value
-     * @param string $source
-     * @param string $source_code
-     * @param string $stock
+     *
+     * @param  string $path
+     * @param  string $value
+     * @param  string $source
+     * @param  string $source_code
+     * @param  string $stock
      * @return string|int|float|null|bool
      */
     public function setConfig($path, $value, $source, $source_code, $stock);

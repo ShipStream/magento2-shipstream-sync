@@ -5,12 +5,15 @@
     "license": "OSL-3.0",
     "authors": [
         {
-		  "name": "ShipStream",
-		  "email": "info@shipstream.io"
-		}
+            "name": "ShipStream",
+            "email": "info@shipstream.io"
+        }
     ],
     "minimum-stability": "dev",
-    "require": {},
+    "require": {
+        "php": "^8.1.25"
+    },
+    "version": "1.0.0",
     "autoload": {
         "files": [
             "registration.php"

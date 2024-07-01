@@ -6,12 +6,11 @@
 declare(strict_types=1);
 namespace ShipStream\Sync\Model;
 
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Framework\Module\ModuleListInterface;
-use Magento\Framework\App\Config\ScopeConfigInterface;
-use ShipStream\Sync\Helper\Data;
-use ShipStream\Sync\Model\Cron;
 use Psr\Log\LoggerInterface;
+use ShipStream\Sync\Helper\Data;
 
 class ShipStreamManagement implements \ShipStream\Sync\Api\ShipStreamManagementInterface
 {
@@ -30,12 +29,12 @@ class ShipStreamManagement implements \ShipStream\Sync\Api\ShipStreamManagementI
         LoggerInterface $logger,
         ScopeConfigInterface $scopeConfig
     ) {
-                $this->productMetadata = $productMetadata;
-                $this->moduleList = $moduleList;
-                $this->dataHelper = $dataHelper;
-                $this->cron = $cron;
-                $this->logger = $logger;
-                $this->scopeConfig = $scopeConfig;
+        $this->productMetadata = $productMetadata;
+        $this->moduleList = $moduleList;
+        $this->dataHelper = $dataHelper;
+        $this->cron = $cron;
+        $this->logger = $logger;
+        $this->scopeConfig = $scopeConfig;
     }
     /**
      * {@inheritdoc}

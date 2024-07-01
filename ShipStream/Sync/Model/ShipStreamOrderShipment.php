@@ -6,21 +6,18 @@
 declare(strict_types=1);
 namespace ShipStream\Sync\Model;
 
-use Magento\Sales\Api\OrderRepositoryInterface;
-use Magento\Sales\Model\Convert\Order as OrderConverter;
-use Magento\Sales\Api\ShipmentRepositoryInterface;
-use Magento\Framework\DB\TransactionFactory;
 use Magento\Framework\Api\SearchCriteriaBuilder;
-use Magento\Sales\Model\Order\Shipment\TrackFactory;
+use Magento\Framework\DB\TransactionFactory;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
-use Magento\InventorySalesApi\Api\Data\SalesEventInterface;
-use Magento\InventorySourceDeductionApi\Model\SourceDeductionServiceInterface;
-use Magento\InventoryApi\Api\SourceItemsSaveInterface;
 use Magento\InventoryShipping\Model\SourceDeductionRequestFromShipmentFactory;
-use Psr\Log\LoggerInterface;
-use ShipStream\Sync\Model\Cron;
-use ShipStream\Sync\Helper\Data;
+use Magento\InventorySourceDeductionApi\Model\SourceDeductionServiceInterface;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Sales\Api\ShipmentRepositoryInterface;
+use Magento\Sales\Model\Convert\Order as OrderConverter;
 use Magento\Sales\Model\Order\Email\Sender\ShipmentSender;
+use Magento\Sales\Model\Order\Shipment\TrackFactory;
+use Psr\Log\LoggerInterface;
+use ShipStream\Sync\Helper\Data;
 
 class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShipmentInterface
 {
@@ -37,6 +34,7 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
     protected $cronHelper;
     protected $dataHelper;
     protected $shipmentSender;
+
     public function __construct(
         OrderRepositoryInterface $orderRepository,
         OrderConverter $orderConverter,
@@ -64,6 +62,8 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
         $this->dataHelper = $dataHelper;
         $this->shipmentSender = $shipmentSender;
     }
+
+    //Create shipment and update tracking number
     public function createWithTracking($orderIncrementId, $dataJson)
     {
         try {
@@ -72,39 +72,36 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
                 ->create();
             $orderList = $this->orderRepository->getList($searchCriteria);
             if ($orderList->getTotalCount() == 0) {
-                $this->logger->error('Order does not exist.');
+                $this->logger->error(__('Order does not exist.'));
                 return null;
             }
             $order = current($orderList->getItems());
             $dataArray = json_decode($dataJson, true);
             $data = $dataArray['data'];
         } catch (\Exception $e) {
-            $this->logger->error('Error processing order: ' . $e->getMessage());
+            $this->logger->error(__('Error processing order: %1', $e->getMessage()));
             return null;
         }
         if (!$order->canShip()) {
-            $this->logger->error('Cannot do shipment for order.');
+            $this->logger->error(__('Cannot do shipment for order.'));
             return null;
         }
 
-            $itemsQty = [];
+        $itemsQty = [];
         if ($data['status'] != "complete") {
             $itemsQty = $this->_getShippedItemsQty($order, $data);
             if (sizeof($itemsQty) == 0) {
-                $this->logger->error('Decimal qty is not allowed to ship in Magento');
+                $this->logger->info(__('Decimal qty is not allowed to ship in Magento'));
                 return null;
             }
         }
-
-            $comments = $this->_getCommentsData($order, $data);
-
-            $shipment = $this->orderConverter->toShipment($order);
+        $comments = $this->_getCommentsData($order, $data);
+        $shipment = $this->orderConverter->toShipment($order);
         foreach ($itemsQty as $orderItemId => $qty) {
             $orderItem = $order->getItemById($orderItemId);
             if ($orderItem) {
                 $shipmentItem = $this->orderConverter->itemToShipmentItem($orderItem)->setQty($qty);
                 $shipment->addItem($shipmentItem);
-                $this->logger->error("ITem");
             }
         }
         try {
@@ -115,50 +112,49 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
                         ->setCarrierCode($data['carrier'])
                         ->setTitle($data['service_description']);
                     $shipment->addTrack($track);
-
                 }
             }
-        } catch (Exception $e) {
-            $this->logger->error("Multi track : " . $e->getMessage());
+        } catch (\Exception $e) {
+            $this->logger->error(__("Multi track : %1", $e->getMessage()));
         }
-            $shipment->register();
+        $shipment->register();
         if ($comments) {
             $shipment->addComment($comments);
         }
-            $sourceCode =  $this->cronHelper->getCurrentSourceCode();
-          // Create the sales channel (or sales event) based on your business logic
-            $salesChannel = [
+        $sourceCode =  $this->cronHelper->getCurrentSourceCode();
+        // Create the sales channel (or sales event) based on your business logic
+        $salesChannel = [
                 'type' => SalesChannelInterface::TYPE_WEBSITE,
                 'code' => $order->getStore()->getWebsite()->getCode()
             ];
-            $transaction = $this->transactionFactory->create();
+        $transaction = $this->transactionFactory->create();
+        try {
+            $shipment->getExtensionAttributes()->setSourceCode($sourceCode);
+            $transaction->addObject($shipment)
+                ->addObject($order)
+                ->save();
+            $this->logger->info(__('Shipment created successfully for order ID %1', $order->getIncrementId()));
+        } catch (\Exception $e) {
+            $this->logger->error(__('Error creating shipment:  %1', $e->getMessage()));
+            return null;
+        }
+        $email = $this->dataHelper->isSendEmailEnabled();
+        if ($email) {
             try {
-                $shipment->getExtensionAttributes()->setSourceCode($sourceCode);
-                $transaction->addObject($shipment)
-                        ->addObject($order)
-                        ->save();
-                $this->logger->info('Shipment created successfully for order ID ' . $order->getIncrementId());
+                $this->shipmentSender->send($shipment);
+                $shipment->setEmailSent(true);
+                $shipment->save();
             } catch (\Exception $e) {
-                $this->logger->error('Error creating shipment:  - '. $e->getMessage());
-                return null;
+                $this->logger->error(__('Error sending shipment email: %1', $e->getMessage()));
             }
-            $email = $this->dataHelper->isSendEmailEnabled();
-      // $email=TRUE;
-            if ($email) {
-                try {
-                    $this->shipmentSender->send($shipment);
-                    $shipment->setEmailSent(true);
-                    $shipment->save();
-                } catch (\Exception $e) {
-                    $this->logger->error('Error sending shipment email: ' . $e->getMessage());
-                }
-            }
-            $result['shipment_increment_id'] = $shipment->getIncrementId();
-            return json_encode($result, 1);
+        }
+        $result['shipment_increment_id'] = $shipment->getIncrementId();
+        return json_encode($result, 1);
     }
+
+    //Get shipped items
     protected function _getShippedItemsQty($order, $data)
     {
-        //$this->logger->error("Items");
         $orderItems = $order->getAllVisibleItems();
         $itemShippedQty = [];
         $itemReference = [];
@@ -197,10 +193,10 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
         }
         return $itemShippedQty;
     }
+
     protected function _getCommentsData($order, $data)
     {
         $orderComments = [];
-        //$this->logger->error("comments");
         // Get Item name & SKU from Magento order items
         $orderItemsData = $order->getAllVisibleItems(); // Use getAllVisibleItems to avoid child items of configurable or bundled products
         foreach ($orderItemsData as $orderItem) {

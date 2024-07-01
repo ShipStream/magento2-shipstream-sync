@@ -6,24 +6,26 @@
 declare(strict_types=1);
 namespace ShipStream\Sync\Model;
 
-use Magento\Sales\Model\ResourceModel\Order\CollectionFactory;
 use Magento\Framework\Api\FilterBuilder;
-use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\Search\FilterGroupBuilder;
-use Zend_Db_Select;
+use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Sales\Model\ResourceModel\Order\CollectionFactory;
 use Psr\Log\LoggerInterface;
+use Zend_Db_Select;
 
 class ShipStreamOrderFields implements \ShipStream\Sync\Api\ShipStreamOrderFieldsInterface
 {
     protected $orderCollectionFactory;
     protected $filterBuilder;
     protected $searchCriteriaBuilder;
+    private $logger;
     protected $filterGroupBuilder;
+
     /**
      * Retrieve array of columns in order flat table.
      *
-     * @param null|object|array $filters
-     * @param array $cols
+     * @param  null|object|array $filters
+     * @param  array             $cols
      * @return array
      */
     public function __construct(
@@ -39,16 +41,18 @@ class ShipStreamOrderFields implements \ShipStream\Sync\Api\ShipStreamOrderField
         $this->filterGroupBuilder = $filterGroupBuilder;
         $this->logger = $logger;
     }
+
     /**
      * {@inheritdoc}
      */
     public function selectFields($filtersInput)
     {
+        $orders = [];
         try {
             $data = new \stdClass();
             $data->result=$filtersInput;
             $params = json_decode($data->result, true);
-             // Extract filters and columns from parameters
+            // Extract filters and columns from parameters
             $filters = $params['filters'] ?? [];
             $cols = $filters['cols'] ?? [];
             // Create the order collection
@@ -67,13 +71,13 @@ class ShipStreamOrderFields implements \ShipStream\Sync\Api\ShipStreamOrderField
             // Set the specific columns to be selected
             $collection->getSelect()->reset(Zend_Db_Select::COLUMNS)->columns($cols);
             // Iterate over the collection and gather the data
-            $orders = [];
             foreach ($collection as $order) {
                 $orders[] = $order->getData();
             }
             return json_encode($orders);
-        } catch (Exception $e) {
-            $this->logger->info("Error in ShipStreamOrderFields: ".$e->getMessage());
+        } catch (\Exception $e) {
+            $this->logger->info(__("Error in ShipStreamOrderFields: %1", $e->getMessage()));
+            return json_encode($orders);
         }
     }
 }

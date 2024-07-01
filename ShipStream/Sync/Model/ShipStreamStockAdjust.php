@@ -1,23 +1,20 @@
 <?php
-
 /**
  * Copyright ©  All rights reserved.
  * See COPYING.txt for license details.
  */
 
 declare(strict_types=1);
-
 namespace ShipStream\Sync\Model;
 
 use Magento\Catalog\Api\ProductRepositoryInterface;
-use Magento\InventoryApi\Api\Data\SourceItemInterfaceFactory;
-use Magento\InventoryApi\Api\SourceItemsSaveInterface;
-use Magento\InventoryApi\Api\SourceItemRepositoryInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Api\SearchCriteriaBuilder;
-use Psr\Log\LoggerInterface;
-use ShipStream\Sync\Model\Cron;
 use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\InventoryApi\Api\Data\SourceItemInterfaceFactory;
+use Magento\InventoryApi\Api\SourceItemRepositoryInterface;
+use Magento\InventoryApi\Api\SourceItemsSaveInterface;
+use Psr\Log\LoggerInterface;
 
 class ShipStreamStockAdjust implements \ShipStream\Sync\Api\ShipStreamStockAdjustInterface
 {
@@ -29,6 +26,7 @@ class ShipStreamStockAdjust implements \ShipStream\Sync\Api\ShipStreamStockAdjus
     protected $logger;
     protected $cronHelper;
     private $resourceConnection;
+
     public function __construct(
         ProductRepositoryInterface $productRepository,
         SourceItemInterfaceFactory $sourceItemFactory,
@@ -48,6 +46,7 @@ class ShipStreamStockAdjust implements \ShipStream\Sync\Api\ShipStreamStockAdjus
         $this->cronHelper = $cronHelper;
         $this->resourceConnection = $resourceConnection->getConnection();
     }
+
     /**
      * {@inheritdoc}
      */
@@ -75,24 +74,25 @@ class ShipStreamStockAdjust implements \ShipStream\Sync\Api\ShipStreamStockAdjus
             $newQty = $oldQty + $delta;
             $sourceItem->setQuantity($newQty);
             $sourceItem->save();
-                
+
             if ($newQty <= 0) {
                 $sourceItem->setStatus(\Magento\InventoryApi\Api\Data\SourceItemInterface::STATUS_OUT_OF_STOCK);
             } else {
                 $sourceItem->setStatus(\Magento\InventoryApi\Api\Data\SourceItemInterface::STATUS_IN_STOCK);
             }
-             $this->resourceConnection->commit();
+            $this->resourceConnection->commit();
         } catch (NoSuchEntityException $e) {
-             $this->resourceConnection->rollback();
-            $this->logger->error('Product not found: ' . $e->getMessage());
+            $this->resourceConnection->rollback();
+            $this->logger->error(__('Product not found: %1', $e->getMessage()));
             return false;
         } catch (\Exception $e) {
-             $this->resourceConnection->rollback();
-            $this->logger->error('Error adjusting stock: ' . $e->getMessage());
+            $this->resourceConnection->rollback();
+            $this->logger->error(__('Error adjusting stock: %1', $e->getMessage()));
             return false;
         }
         return true;
     }
+
     protected function _lockStockItems($productId = null, $sourceCode = null)
     {
         try {
@@ -110,7 +110,7 @@ class ShipStreamStockAdjust implements \ShipStream\Sync\Api\ShipStreamStockAdjus
                 // Lock multiple products if productId is an array
                 $select->where('source_item_id IN (?)', $productId);
             }
-             $select->where('source_code = ?', $sourceCode);
+            $select->where('source_code = ?', $sourceCode);
             // Execute the query which will lock the rows until the transaction is either committed or rolled back
             $this->resourceConnection->query($select)->closeCursor();
         } catch (\Exception $e) {

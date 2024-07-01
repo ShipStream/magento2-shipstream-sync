@@ -11,7 +11,7 @@ interface ShipStreamOrderFieldsInterface
     /**
      * Retrieve array of columns in order flat table.
      *
-     * @param string $filters
+     * @param  string $filters
      * @return string
      */
     public function selectFields($filters);
