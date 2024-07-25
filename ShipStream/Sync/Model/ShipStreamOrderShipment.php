@@ -92,7 +92,7 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
         if ($data['status'] != "complete") {
             $itemsQty = $this->_getShippedItemsQty($order, $data);
             if (sizeof($itemsQty) == 0) {
-                $this->logger->info(__('Decimal qty is not allowed to ship in Magento'));
+                $this->logger->info(__('Decimal qty is not allowed to ship in Magento.'));
                 return null;
             }
         }
