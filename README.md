@@ -69,13 +69,9 @@ If the ShipStream plugin is configured to sync orders that are in "Ready to Ship
 will work as depicted below. Note that this requires a user or some custom code to advance the order status from
 "Processing" to "Ready to Ship" before the sync will occur.  
 
-![Status State Diagram](https://raw.githubusercontent.com/ShipStream/Magento2-sync/master/shipstream-sync.png)
-
 If the ShipStream plugin is configured to sync orders that are in "Processing" status the order status progression
 will work as depicted below. This configuration will result in automatic order sync without any user interaction
 once payment is received.
-
-![Status State Diagram](https://raw.githubusercontent.com/ShipStream/Magento2-sync/master/shipstream-sync-processing.png)
 
 It is also possible to configure the ShipStream plugin to use any other status in the event that you would like to create
 a custom workflow.
