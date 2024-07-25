@@ -72,17 +72,17 @@ class Cron
         $this->sourceItemsSave = $sourceItemsSave;
     }
 
-    /**
-     * {@inheritdoc}
-     */
+/**
+ * {@inheritdoc}
+ */
     public function syncInventory()
     {
         return $this->fullInventorySync(false);
     }
 
-    /**
-     * {@inheritdoc}
-     */
+/**
+ * {@inheritdoc}
+ */
     public function getSourceStockId()
     {
         $websiteCode = $this->storeManager->getWebsite()->getCode();
@@ -90,29 +90,29 @@ class Cron
         return $stock->getStockId();
     }
 
-    /**
-     * {@inheritdoc}
-     */
+/**
+ * {@inheritdoc}
+ */
     public function getCurrentSourceCode()
     {
         $stockId=$this->getSourceStockId();
         $tableName = $this->resourceConnection->getTableName('inventory_source_stock_link');
         $select = $this->resourceConnection->select()
-            ->from($tableName, 'source_code')
-            ->where('stock_id = ?', $stockId);
+        ->from($tableName, 'source_code')
+        ->where('stock_id = ?', $stockId);
         $sourceCode = $this->resourceConnection->fetchOne($select); // fetchOne to get the first result directly
         return $sourceCode;
     }
 
-    /**
-     * {@inheritdoc}
-     */
+/**
+ * {@inheritdoc}
+ */
     public function getSourceItemSku($sku, $sourceCode)
     {
         $searchCriteria = $this->searchCriteriaBuilder
-            ->addFilter('sku', $sku, 'eq')
-            ->addFilter('source_code', $sourceCode, 'eq')
-            ->create();
+        ->addFilter('sku', $sku, 'eq')
+        ->addFilter('source_code', $sourceCode, 'eq')
+        ->create();
         $sourceItems = $this->sourceItemRepository->getList($searchCriteria)->getItems();
         if (!empty($sourceItems)) {
             $sourceItem = array_shift($sourceItems); // Assuming there's only one item per sku and source code
@@ -120,9 +120,9 @@ class Cron
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
+/**
+ * {@inheritdoc}
+ */
     public function _getSourceInventory()
     {
         try {
@@ -133,12 +133,12 @@ class Cron
         }
     }
 
-    /**
-     * Synchronize Magento inventory with the warehouse inventory
-     *
-     * @return mixed
-     * @throws Exception
-     */
+/**
+ * Synchronize Magento inventory with the warehouse inventory
+ *
+ * @return mixed
+ * @throws Exception
+ */
     public function fullInventorySync($sleep = true)
     {
         if (!$this->dataHelper->isSyncEnabled()) {
@@ -149,7 +149,7 @@ class Cron
         }
         try {
             $this->resourceConnection->beginTransaction();
-            $this->logger->info(__('Beginning inventory sync..'));
+            $this->logger->info('Beginning inventory sync..');
         } catch (\Exception $e) {
             $this->logger->info(__($e->getMessage()));
         }
@@ -158,7 +158,7 @@ class Cron
             if (!empty($_source) && is_array($_source)) {
                 foreach (array_chunk($_source, 5000, true) as $source) {
                     try {
-                        $this->logger->info(__("Inside Inventory update.."));
+                        $this->logger->info("Inside Inventory update..");
                         $target = $this->_getTargetInventory(array_keys($source));
                         // Get qty of order items that are in processing state and not submitted to shipstream
                         $processingQty = $this->_getProcessingOrderItemsQty(array_keys($source));
@@ -182,7 +182,7 @@ class Cron
                                 $this->logger->info(__('First Source Code: %1 item %2', $sourceCode, $target[$sku]['sourceItemId']));
 
                                 /**
- * @var SourceItemInterface $sourceItem
+     * @var SourceItemInterface $sourceItem
 */
                                 $sourceItem = $this->getSourceItemSku($sku, $sourceCode);
                                 $oldQty = $sourceItem->getQuantity();
@@ -212,12 +212,12 @@ class Cron
         }
     }
 
-    /**
-     * Retrieve Magento inventory
-     *
-     * @param  array $skus
-     * @return array
-     */
+/**
+ * Retrieve Magento inventory
+ *
+ * @param  array $skus
+ * @return array
+ */
     protected function _getTargetInventory(array $skus)
     {
         try {
@@ -225,16 +225,16 @@ class Cron
             $productTable = $this->resourceConnection->getTableName('catalog_product_entity');
             $sourceItemTable = $this->resourceConnection->getTableName('inventory_source_item');
             $columns = [
-                'sku' => 'p.sku',
-                'sourceItemId' => 'si.source_item_id',
-                'source_code' => 'si.source_code',
-                'qty' => 'si.quantity'
+            'sku' => 'p.sku',
+            'sourceItemId' => 'si.source_item_id',
+            'source_code' => 'si.source_code',
+            'qty' => 'si.quantity'
             ];
             $select = $this->resourceConnection->select()->forUpdate(true)
-                ->from(['p' => $productTable], $columns)
-                ->joinInner(['si' => $sourceItemTable], 'p.sku = si.sku', [])
-                ->where("si.source_code = '" . $this->getCurrentSourceCode() . "' and si.sku IN (?)", $skus);
-            $this->logger->info(__("Inside Inventory update query update.."));
+            ->from(['p' => $productTable], $columns)
+            ->joinInner(['si' => $sourceItemTable], 'p.sku = si.sku', [])
+            ->where("si.source_code = '" . $this->getCurrentSourceCode() . "' and si.sku IN (?)", $skus);
+            $this->logger->info("Inside Inventory update query update..");
             return $this->resourceConnection->fetchAssoc($select);
         } catch (\Exception $e) {
             $this->logger->info(__($e->getMessage()));
@@ -242,34 +242,34 @@ class Cron
         }
     }
 
-    /**
-     * Retrieve Magento order items qty that are in processing state and not submitted to shipstream
-     *
-     * @param  array $skus
-     * @return mixed
-     */
+/**
+ * Retrieve Magento order items qty that are in processing state and not submitted to shipstream
+ *
+ * @param  array $skus
+ * @return mixed
+ */
     protected function _getProcessingOrderItemsQty(array $skus)
     {
         $orderStates = [$this->order::STATE_COMPLETE,
-                        $this->order::STATE_CLOSED,
-                        $this->order::STATE_CANCELED];
+                $this->order::STATE_CLOSED,
+                $this->order::STATE_CANCELED];
         $orderItemTable = $this->resourceConnection->getTableName('sales_order_item');
         $orderTable = $this->resourceConnection->getTableName('sales_order');
         $columns = [
-            'sku' => 'soi.sku',
-            'qty' => new \Zend_Db_Expr('GREATEST(0, SUM(soi.qty_ordered - soi.qty_canceled - soi.qty_refunded))')
-         ];
+        'sku' => 'soi.sku',
+        'qty' => new \Zend_Db_Expr('GREATEST(0, SUM(soi.qty_ordered - soi.qty_canceled - soi.qty_refunded))')
+        ];
         $select = $this->resourceConnection->select()->forUpdate(true)
-            ->from(['soi' => $orderItemTable], $columns)
-            ->join(['so' => $orderTable], 'so.entity_id = soi.order_id', [])
-            ->where('so.state NOT IN (?)', $orderStates)
-            ->where('so.status != ?', "submitted")
-            ->where('so.state != ?', "holded")
-            ->orWhere('so.hold_before_status != ?', "submitted")
-            ->where('soi.sku IN (?)', $skus)
-            ->where('soi.product_type = ?', 'simple')
-            ->group('soi.sku');
-        $this->logger->info(__("Inside Processing Items.."));
+        ->from(['soi' => $orderItemTable], $columns)
+        ->join(['so' => $orderTable], 'so.entity_id = soi.order_id', [])
+        ->where('so.state NOT IN (?)', $orderStates)
+        ->where('so.status != ?', "submitted")
+        ->where('so.state != ?', "holded")
+        ->orWhere('so.hold_before_status != ?', "submitted")
+        ->where('soi.sku IN (?)', $skus)
+        ->where('soi.product_type = ?', 'simple')
+        ->group('soi.sku');
+        $this->logger->info("Inside Processing Items..");
         return $this->resourceConnection->fetchAssoc($select);
     }
 }
