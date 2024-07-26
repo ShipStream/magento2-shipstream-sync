@@ -1,0 +1,38 @@
+{
+    "name": "shipstream/magento2-shipstream-sync",
+    "license": "OSL-3.0",
+    "version": "0.0.1",
+    "type": "magento2-module",
+    "homepage": "https://github.com/ShipStream/magento2-shipstream-sync",
+    "description": "Magento 2 companion module to ShipStream Magento 2 plugin",
+    "keywords": [
+        "composer-installer",
+        "magento",
+        "Magento 2",
+        "ShipStream",
+        "WMS"
+    ],
+    "authors": [
+        {
+            "name": "ShipStream",
+            "email": "help@shipstream.io"
+        }
+    ],
+    "require": {
+        "php": ">=7.4.0",
+        "ext-json": "*",
+        "ext-pcre": "*"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "*",
+        "bitexpert/phpstan-magento": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "ShipStream\\Sync\\": ""
+        },
+        "files": [
+            "registration.php"
+        ]
+    }
+}

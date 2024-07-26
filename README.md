@@ -67,7 +67,7 @@ breaking the integration.
 
 If the ShipStream plugin is configured to sync orders that are in "Ready to Ship" status the order status progression
 will work as depicted below. Note that this requires a user or some custom code to advance the order status from
-"Processing" to "Ready to Ship" before the sync will occur.  
+"Processing" to "Ready to Ship" before the sync will occur.
 
 If the ShipStream plugin is configured to sync orders that are in "Processing" status the order status progression
 will work as depicted below. This configuration will result in automatic order sync without any user interaction
@@ -79,8 +79,14 @@ a custom workflow.
 
 Installation
 ============
-**Flush the Magento2 cache after installation to activate the extension.**
 
+Use composer to install this extension:
+
+```bash
+composer require shipstream/magento2-shipstream-sync
+bin/magento module:enable ShipStream_Sync
+bin/magento setup:upgrade
+```
 
 Setup
 =====
@@ -89,7 +95,7 @@ Once this extension is installed and the Magento cache has been refreshed you ha
 
 1. Configure the plugin in Magento2/Magento
 2. Create an API Role and API User
-3. Setup the plugin subscription in ShipStream 
+3. Set up the plugin subscription in ShipStream
 
 More details for each step are provided below.
 
@@ -114,15 +120,24 @@ Copy Shipstream Role user admin/pass to local.xml
 
 Role Resource: Stores->Settings->Configuration->ShipStream Sync
 
-To get AuthToken
-System->Add New Integration
-  - Select the required API access
-  - Shipstream Sync access
-Get the Access token and copy the same to Shipstream plugin local.xml
-<access_token>Access Token</access_token>
-<api_login>Consumer Key</api_login>
-<api_password>Access Token Secret</api_password>
-  
+To get AuthToken:
+
+1. Navigate to System > Integrations > Add New Integration
+2. Enter name "ShipStream Sync" and your email address
+3. Click the "API" tab on the left and check the following resources:
+    - Sales > Operations > Orders > Actions > View
+    - Sales > Operations > Orders > Actions > Ship
+    - Sales > Operations > Orders > Actions > Comment
+    - Sales > Operations > Shipments
+    - Catalog > Inventory > Products
+4. Back on the Integrations grid click "Activate" on the new integration and "Accept" the confirmation
+5. Copy the tokens for the integration and paste them into the ShipStream plugin configuration
+
+  Get the Access token and copy the same to Shipstream plugin local.xml
+  <access_token>Access Token</access_token>
+  <api_login>Consumer Key</api_login>
+  <api_password>Access Token Secret</api_password>
+
 ### Required API Role Resources
 
 The following Role Resources are required for best operation with the ShipStream plugin:
