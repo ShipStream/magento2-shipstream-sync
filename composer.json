@@ -1,7 +1,6 @@
 {
     "name": "shipstream/magento2-shipstream-sync",
     "license": "OSL-3.0",
-    "version": "0.0.1",
     "type": "magento2-module",
     "homepage": "https://github.com/ShipStream/magento2-shipstream-sync",
     "description": "Magento 2 companion module to ShipStream Magento 2 plugin",
