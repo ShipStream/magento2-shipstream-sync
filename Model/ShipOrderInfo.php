@@ -79,6 +79,18 @@ class ShipOrderInfo implements \ShipStream\Sync\Api\ShipOrderInfoInterface
                 ] : null;
             // Get tracking information
             $tracks = [];
+            foreach ($order->getShipmentsCollection() as $shipment) {
+                foreach ($shipment->getTracks() as $track) {
+                    $tracks[] = [
+                        'shipment_inc_id' => $shipment->getIncrementId(),
+                        'track_id' => $track->getId(),
+                        'carrier_code' => $track->getCarrierCode(),
+                        'title' => $track->getTitle(),
+                        'number' => $track->getTrackNumber(),
+                        'created_at' => $track->getCreatedAt(),
+                    ];
+                }
+            }
             // Get shipment comments
             $comments = [];
             $result[] = [
