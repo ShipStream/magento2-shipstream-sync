@@ -55,6 +55,13 @@
             <resource ref="ShipStream_Sync::config_shipstream_sync"/>
         </resources>
     </route>
+    <route url="/V1/shipstream-sync/shipstreamshipmentrevert" method="POST">
+        <service class="ShipStream\Sync\Api\ShipStreamShipmentRevertInterface" method="revert"/>
+        <resources>
+            <resource ref="ShipStream_Sync::config_shipstream_sync"/>
+        </resources>
+    </route>
+
 <!-- <route url="/V1/shipstream-sync/shipstream" method="POST">
         <service class="ShipStream\Sync\Api\ShipStreamManagementInterface" method="moduleInfo" />
         <resources>

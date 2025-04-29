@@ -7,6 +7,7 @@
 	<preference for="ShipStream\Sync\Api\ShipStreamOrderCommentsInterface" type="ShipStream\Sync\Model\ShipStreamOrderComments"/>
 	<preference for="ShipStream\Sync\Api\ShipStreamOrderShipmentInterface" type="ShipStream\Sync\Model\ShipStreamOrderShipment"/>
 	<preference for="ShipStream\Sync\Api\ShipStreamStockAdjustInterface" type="ShipStream\Sync\Model\ShipStreamStockAdjust"/>
+	<preference for="ShipStream\Sync\Api\ShipStreamShipmentRevertInterface" type="ShipStream\Sync\Model\ShipStreamShipmentRevert"/>
 	<type name="Psr\Log\LoggerInterface">
         <arguments>
             <argument name="handlers" xsi:type="array">
