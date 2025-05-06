@@ -167,13 +167,8 @@ class Data extends AbstractHelper
             $this->curl->get($url);
             $response = $this->curl->getBody();
             $this->_logger->info("Callback {$method} response: {$response}");
-
-            $decoded = json_decode($response, true);
-            if ($method === 'syncOrder' && isset($decoded['status'])) {
-                return $decoded['status'];
-            }
-
-            return $decoded;
+            
+            return json_decode($response, true);
         } catch (\Exception $e) {
             $this->_logger->error('Error in callback: ' . $e->getMessage());
             return false;

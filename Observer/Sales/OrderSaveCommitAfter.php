@@ -74,15 +74,31 @@ class OrderSaveCommitAfter implements ObserverInterface
                     && $order->getStatus() == 'ready_to_ship'
                 ) {
                     try {
-                        $statusFrom = $this->dataHelper->callback(
+                        $response = $this->dataHelper->callback(
                             'syncOrder',
-                            ['increment_id' => $order->getIncrementId()]
+                            [
+                                'increment_id' => $order->getIncrementId(),
+                                'status' => $order->getStatus(),
+                            ]
                         );
-                        if ($statusFrom) {
-                            $order->setStatus($statusFrom);
+
+                        if (isset($response['error'])) {
+                            $this->logger->error(springtf('Error in callback response: %s', $statusFrom['error']));
+                        } elseif (isset($response['status'])) {
+                            $order->setStatus($response['status']);
                             $order->save();
+                        } elseif (isset($response['queued'])) {
+                            if ($response['queued']) {
+                                $this->logger->info('Order is queued for processing.');
+                            } else {
+                                $this->logger->info('Order is not queued for processing.');
+                            }
+
+                        } else {
+                            $this->logger->error(__('Invalid response from callback.'));
                         }
-                        $this->logger->error("Order status after callback: " . $order->getStatus());
+
+                        $this->logger->info('Order status after callback: ' . $order->getStatus());
                     } catch (\Exception $e) {
                         $this->logger->critical($e);
                     }
