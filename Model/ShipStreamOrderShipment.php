@@ -77,8 +77,7 @@ class ShipStreamOrderShipment implements \ShipStream\Sync\Api\ShipStreamOrderShi
                 return null;
             }
             $order = current($orderList->getItems());
-            $dataArray = json_decode($dataJson, true);
-            $data = $dataArray['data'];
+            $data = json_decode($dataJson, true);
         } catch (\Exception $e) {
             $this->logger->error(__('Error processing order: %1', $e->getMessage()));
             return null;

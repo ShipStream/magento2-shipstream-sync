@@ -1,226 +1,250 @@
 <?php
-/**
- * Copyright ©  All rights reserved.
- * See COPYING.txt for license details.
- */
-
 declare(strict_types=1);
 
 namespace ShipStream\Sync\Helper;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
 use Magento\Framework\FlagFactory;
 use Magento\Framework\HTTP\Client\Curl;
-use Magento\InventoryApi\Api\Data\SourceInterface;
+use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Framework\Api\FilterBuilder;
 use Magento\InventoryApi\Api\Data\SourceInterfaceFactory;
-use Magento\InventoryApi\Api\Data\StockInterface;
-use Magento\InventoryApi\Api\Data\StockInterfaceFactory;
 use Magento\InventoryApi\Api\SourceRepositoryInterface;
+use Magento\InventoryApi\Api\Data\StockInterfaceFactory;
 use Magento\InventoryApi\Api\StockRepositoryInterface;
-use Psr\Log\LoggerInterface;
+use Magento\Store\Model\ScopeInterface;
+use Magento\Framework\Exception\NoSuchEntityException;
 
 class Data extends AbstractHelper
 {
-    protected $scopeConfig;
-    /**
-     * @var SourceInterfaceFactory
-     */
-    private $sourceFactory;
-    /**
-     * @var SourceRepositoryInterface
-     */
-    private $sourceRepository;
-    /**
-     * @var StockInterfaceFactory
-     */
-    private $stockFactory;
-    /**
-     * @var StockRepositoryInterface
-     */
-    private $stockRepository;
-    /**
-     * @var FlagFactory
-     */
-    private $flagFactory;
+    private const XML_PATH_GENERAL     = 'shipstream/general/';
+    private const FLAG_PREFIX         = 'ShipStream_Sync/';
+    private const DEFAULT_COUNTRY     = 'US';
+    private const DEFAULT_POSTCODE    = '00001';
 
-    protected $logger;
-    protected $curl;
-    const XML_PATH_SHIPSTREAM_GENERAL = 'shipstream/general/';
-    const XML_PATH_SHIPSTREAM_SOURCE = 'source_section/custom_group/';
+    private FlagFactory               $flagFactory;
+    private Curl                      $curl;
+    private SourceInterfaceFactory    $sourceFactory;
+    private SourceRepositoryInterface $sourceRepository;
+    private StockInterfaceFactory     $stockFactory;
+    private StockRepositoryInterface  $stockRepository;
+    private SearchCriteriaBuilder     $searchCriteriaBuilder;
+    private FilterBuilder             $filterBuilder;
 
     public function __construct(
         Context $context,
-        ScopeConfigInterface $scopeConfig,
         FlagFactory $flagFactory,
         SourceInterfaceFactory $sourceFactory,
         SourceRepositoryInterface $sourceRepository,
         StockInterfaceFactory $stockFactory,
         StockRepositoryInterface $stockRepository,
-        Curl $curl,
-        LoggerInterface $logger
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        FilterBuilder $filterBuilder,
+        Curl $curl
     ) {
         parent::__construct($context);
-        $this->scopeConfig = $scopeConfig;
         $this->flagFactory = $flagFactory;
         $this->sourceFactory = $sourceFactory;
         $this->sourceRepository = $sourceRepository;
         $this->stockFactory = $stockFactory;
         $this->stockRepository = $stockRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->filterBuilder = $filterBuilder;
         $this->curl = $curl;
-        $this->logger = $logger;
     }
 
-    public function isSyncEnabled()
+    public function isSyncEnabled(): bool
     {
         return $this->scopeConfig->isSetFlag(
-            self::XML_PATH_SHIPSTREAM_GENERAL . 'realtime_sync',
-            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+            self::XML_PATH_GENERAL . 'realtime_sync',
+            ScopeInterface::SCOPE_STORE
         );
     }
 
-    public function isSendEmailEnabled()
+    public function isSendEmailEnabled(): bool
     {
         return $this->scopeConfig->isSetFlag(
-            self::XML_PATH_SHIPSTREAM_GENERAL . 'send_shipment_email',
-            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+            self::XML_PATH_GENERAL . 'send_shipment_email',
+            ScopeInterface::SCOPE_STORE
         );
-    }
-
-    public function setConfig($flagCode, $value, $source_name, $source_code, $stock_name)
-    {
-        if ($this->isSyncEnabled()) {
-            $flag_code = 'ShipStream_Sync/' . $flagCode;
-            $flag = $this->flagFactory->create(['data' => ['flag_code' => $flag_code]]);
-            $flag->loadSelf();
-            if (!$flag->getFlagData()) {
-                $flag->setFlagData($value);
-            } else {
-                $flag->setFlagData($value);
-            }
-            $flag->save();
-            if ($source_name == null) {
-                return true;
-            }
-            //Create source and stock by reading the ShipStream Sync integration config namespace
-            /**
-            * @var SourceInterface $source
-            */
-            $source = $this->sourceFactory->create();
-            $source->setSourceCode($source_code);
-            $source->setName($source_name);
-            $source->setEnabled(true);
-            $source->setCountryId('US');
-            $source->setPostcode('00001');
-            $source->setUseDefaultCarrierConfig(true);
-            try {
-                $this->sourceRepository->save($source);
-            } catch (\Exception $e) {
-                $this->logger->error(__("Error on set config: %1", $e->getMessage()));
-                throw new \Exception(__('Failed to save source: %1', $e->getMessage()));
-                return false;
-            }
-            //Create stock
-            /**
-                * @var StockInterface $stock
-            */
-            $stock = $this->stockFactory->create(); // Instantiate a stock object
-            $stock->setName($stock_name);
-            try {
-                $this->stockRepository->save($stock);
-            } catch (\Exception $e) {
-                $this->logger->error(__("Error on set config: %1", $e->getMessage()));
-                throw new \Exception(__('Failed to save stock: %1', $e->getMessage()));
-                return false;
-            }
-            return true;
-        } else {
-            $this->logger->error(__('Real time sync not enabled. Please check the config.'));
-            return false;
-        }
-    }
-
-    public function getConfig($flagCode)
-    {
-        $flag_code = 'ShipStream_Sync/' . $flagCode;
-        $flag = $this->flagFactory->create(['data' => ['flag_code' => $flag_code]]);
-        $flag->loadSelf();
-        if ($flag->getFlagData()) {
-            return $flag->getFlagData();
-        }
-        return false;
     }
 
     /**
-     * Perform request to the warehouse API
+     * Set a flag and optionally ensure a source and stock exist.
      *
-     * @param  string $method
-     * @param  array  $data
+     * @param string      $flagCode
+     * @param mixed       $value
+     * @param string|null $sourceName
+     * @param string|null $sourceCode
+     * @param string|null $stockName
+     * @return bool
+     */
+    public function setConfig(
+        string $flagCode,
+        $value,
+        ?string $sourceName = null,
+        ?string $sourceCode = null,
+        ?string $stockName = null
+    ): bool {
+        if (! $this->isSyncEnabled()) {
+            $this->_logger->error('Real time sync not enabled. Please check the config.');
+            return false;
+        }
+
+        $this->saveFlag($flagCode, $value);
+
+        if ($sourceName && $sourceCode) {
+            try {
+                $this->ensureSourceExists($sourceCode, $sourceName);
+            } catch (\Exception $e) {
+                $this->_logger->error('Failed to ensure source: ' . $e->getMessage());
+                throw new \RuntimeException('Source creation failed: ' . $e->getMessage());
+            }
+        }
+
+        if ($stockName) {
+            try {
+                $this->ensureStockExists($stockName);
+            } catch (\Exception $e) {
+                $this->_logger->error('Failed to ensure stock: ' . $e->getMessage());
+                throw new \RuntimeException('Stock creation failed: ' . $e->getMessage());
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Retrieve stored flag value
+     *
+     * @param string $flagCode
+     * @return mixed|false
+     */
+    public function getConfig(string $flagCode)
+    {
+        $flag = $this->flagFactory->create(['data' => ['flag_code' => self::FLAG_PREFIX . $flagCode]]);
+        $flag->loadSelf();
+        return $flag->getFlagData() ?: false;
+    }
+
+    /**
+     * Perform HTTP callback to warehouse API
+     *
+     * @param string $method
+     * @param array  $data
      * @return mixed
      */
-    public function callback($method, $data = [])
+    public function callback(string $method, array $data = [])
     {
-        if ($this->isSyncEnabled()) {
-            try {
-                $apiUrl = urldecode($this->getConfig('warehouse_api_url'));
-                if (empty($apiUrl)) {
-                    $this->logger->error(__('The warehouse API URL is required.'));
-                    return false;
-                }
-                if (false === strpos($apiUrl, '{{method}}')) {
-                    $this->logger->error(__('The warehouse API URL format is not valid.'));
-                    return false;
-                }
-                $apiUrl = str_replace('{{method}}', $method, $apiUrl);
-                // Append query parameters
-                // Prepare data to be sent in the POST request
-                $this->curl->setOption(CURLOPT_RETURNTRANSFER, true);
-                $this->curl->setOption(CURLOPT_TIMEOUT, 300); // Wait up to 30 seconds for a response
-                $this->curl->setOption(CURLOPT_VERBOSE, true);
-                $this->curl->setOption(CURLOPT_CONNECTTIMEOUT, 120);
-                $headers = [
-                    'Content-Type: application/json',
-                    'Accept: application/json',
-                ];
-                $this->curl->setOption(CURLOPT_HTTPHEADER, $headers);
-                if (!empty($data)) {
-                    $separator = strpos($apiUrl, '?') === false ? '?' : '&';
-                    $apiUrl .= $separator . http_build_query($data, '', '&');
-                }
-                $this->curl->get($apiUrl);
-                $response = $this->curl->getBody();
-                $this->logger->error(__('Callback Method: %1 Response %2', $method, $response));
-                if ($method == 'syncOrder') {
-                    // Example combined output as a string
-                    $combinedOutput = $response;
-                    // Use a regular expression to extract the JSON part
-                    if ($combinedOutput!='') {
-                        preg_match('/\{"status":"[^"]+"\}/', $combinedOutput, $matches);
-                        // Check if we found a match and decode the JSON part
-                        if (!empty($matches)) {
-                            $jsonString = $matches[0];
-                            $decodedJson = json_decode($jsonString);
-                            if ($decodedJson->status) {
-                                // Output the status from the JSON string
-                                return $decodedJson->status;
-                            }
-                        } else {
-                            $this->logger->error(__("No JSON string found in the output.\n"));
-                            return false;
-                        }
-                    } else {
-                        $this->logger->error(__("No JSON string found in the output.\n"));
-                        return false;
-                    }
-                }
-                return json_decode($response, true);
-            } catch (\Exception $e) {
-                $this->logger->error(__($e->getMessage()));
-            }
-        } else {
-            $this->logger->error(__('Real time sync not enabled. Please check the config.'));
+        if (! $this->isSyncEnabled()) {
+            $this->_logger->error('Real time sync not enabled. Please check the config.');
             return false;
+        }
+
+        $apiUrl = (string) $this->getConfig('warehouse_api_url');
+        if (empty($apiUrl) || strpos($apiUrl, '{{method}}') === false) {
+            $this->_logger->error('The warehouse API URL is required and must contain {{method}} placeholder.');
+            return false;
+        }
+
+        $url = str_replace('{{method}}', $method, $apiUrl);
+
+        if (! empty($data)) {
+            $url .= (strpos($url, '?') === false ? '?' : '&') . http_build_query($data);
+        }
+
+        try {
+            $this->curl->setOption(CURLOPT_RETURNTRANSFER, true);
+            $this->curl->setOption(CURLOPT_TIMEOUT, 300);
+            $this->curl->setOption(CURLOPT_VERBOSE, true);
+            $this->curl->setOption(CURLOPT_CONNECTTIMEOUT, 120);
+            $this->curl->setOption(CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Accept: application/json',
+            ]);
+
+            $this->curl->get($url);
+            $response = $this->curl->getBody();
+            $this->_logger->info("Callback {$method} response: {$response}");
+            
+            return json_decode($response, true);
+        } catch (\Exception $e) {
+            $this->_logger->error('Error in callback: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Save flag data
+     *
+     * @param string $flagCode
+     * @param mixed  $value
+     */
+    private function saveFlag(string $flagCode, $value): void
+    {
+        $flag = $this->flagFactory->create(['data' => ['flag_code' => self::FLAG_PREFIX . $flagCode]]);
+        $flag->loadSelf();
+        $flag->setFlagData($value)->save();
+    }
+
+    /**
+     * Ensure a source exists by name, create if missing
+     *
+     * @param string $code
+     * @param string $name
+     * @throws \Exception
+     */
+    private function ensureSourceExists(string $code, string $name): void
+    {
+        // Check by source name instead of code
+        $filter = $this->filterBuilder
+            ->setField('name')
+            ->setValue($name)
+            ->setConditionType('eq')
+            ->create();
+
+        $searchCriteria = $this->searchCriteriaBuilder
+            ->addFilters([$filter])
+            ->create();
+
+        $list = $this->sourceRepository->getList($searchCriteria);
+        if ($list->getTotalCount() === 0) {
+            $source = $this->sourceFactory->create();
+            $source->setSourceCode($code);
+            $source->setName($name);
+            $source->setEnabled(true);
+            $source->setCountryId(self::DEFAULT_COUNTRY);
+            $source->setPostcode(self::DEFAULT_POSTCODE);
+            $source->setUseDefaultCarrierConfig(true);
+
+            $this->sourceRepository->save($source);
+        }
+    }
+
+    /**
+     * Ensure a stock exists, create if missing
+     *
+     * @param string $name
+     * @throws \Exception
+     */
+    private function ensureStockExists(string $name): void
+    {
+        $filter = $this->filterBuilder
+            ->setField('name')
+            ->setValue($name)
+            ->setConditionType('eq')
+            ->create();
+
+        $searchCriteria = $this->searchCriteriaBuilder
+            ->addFilters([$filter])
+            ->create();
+
+        $list = $this->stockRepository->getList($searchCriteria);
+        if ($list->getTotalCount() === 0) {
+            $stock = $this->stockFactory->create();
+            $stock->setName($name);
+            $this->stockRepository->save($stock);
         }
     }
 }

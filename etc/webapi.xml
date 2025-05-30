@@ -1,73 +1,71 @@
 <?xml version="1.0" ?>
-<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
-	<route url="/V1/shipstream-sync/shipstreamstockadjust" method="POST">
-        <service class="ShipStream\Sync\Api\ShipStreamStockAdjustInterface" method="stockAdjust">
-            <resources>
-                <resource ref="ShipStream_Sync::config_shipstream_sync"/>
-            </resources>
-        </service>
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
+    <route url="/V1/shipstream-sync/shipstreamstockadjust" method="POST">
+        <service class="ShipStream\Sync\Api\ShipStreamStockAdjustInterface" method="stockAdjust"/>
+        <resources>
+            <resource ref="ShipStream_Sync::config_shipstream_sync"/>
+        </resources>
     </route>
-	<route url="/V1/shipstream-sync/shipstreamordershipment" method="POST">
-        <service class="ShipStream\Sync\Api\ShipStreamOrderShipmentInterface" method="createWithTracking">
-            <resources>
-                <resource ref="ShipStream_Sync::config_shipstream_sync"/>
-            </resources>
-        </service>
+    <route url="/V1/shipstream-sync/shipstreamordershipment" method="POST">
+        <service class="ShipStream\Sync\Api\ShipStreamOrderShipmentInterface" method="createWithTracking"/>
+        <resources>
+            <resource ref="ShipStream_Sync::config_shipstream_sync"/>
+        </resources>
     </route>
-	<route url="/V1/shipstream-sync/shipstreamordercomments" method="POST">
-        <service class="ShipStream\Sync\Api\ShipStreamOrderCommentsInterface" method="addComment">
-            <resources>
-                <resource ref="ShipStream_Sync::config_shipstream_sync"/>
-            </resources>
-        </service>
+    <route url="/V1/shipstream-sync/shipstreamordercomments" method="POST">
+        <service class="ShipStream\Sync\Api\ShipStreamOrderCommentsInterface" method="addComment"/>
+        <resources>
+            <resource ref="ShipStream_Sync::config_shipstream_sync"/>
+        </resources>
     </route>
-	 <route url="/V1/shipstream-sync/shipstreamorderfields" method="POST">
-        <service class="ShipStream\Sync\Api\ShipStreamOrderFieldsInterface" method="selectFields">
-            <resources>
-                <resource ref="ShipStream_Sync::config_shipstream_sync"/>
-            </resources>
-        </service>
+    <route url="/V1/shipstream-sync/shipstreamorderfields" method="POST">
+        <service class="ShipStream\Sync\Api\ShipStreamOrderFieldsInterface" method="selectFields"/>
+        <resources>
+            <resource ref="ShipStream_Sync::config_shipstream_sync"/>
+        </resources>
     </route>
-	 <route url="/V1/shipstream-sync/shipstreaminfo" method="POST">
-        <service class="ShipStream\Sync\Api\ShipStreamInfoInterface" method="infos">
-            <resources>
-                <resource ref="ShipStream_Sync::config_shipstream_sync"/>
-            </resources>
-        </service>
+    <route url="/V1/shipstream-sync/shipstreaminfo" method="POST">
+        <service class="ShipStream\Sync\Api\ShipStreamInfoInterface" method="infos"/>
+        <resources>
+            <resource ref="ShipStream_Sync::config_shipstream_sync"/>
+        </resources>
     </route>
-	 <route url="/V1/shipstream-sync/shiporderinfo" method="POST">
-        <service class="ShipStream\Sync\Api\ShipOrderInfoInterface" method="info">
-            <resources>
-                <resource ref="ShipStream_Sync::config_shipstream_sync"/>
-            </resources>
-        </service>
+    <route url="/V1/shipstream-sync/shiporderinfo" method="POST">
+        <service class="ShipStream\Sync\Api\ShipOrderInfoInterface" method="info"/>
+        <resources>
+            <resource ref="ShipStream_Sync::config_shipstream_sync"/>
+        </resources>
     </route>
-	<!-- <route url="/V1/shipstream-sync/shipstream" method="POST">
-        <service class="ShipStream\Sync\Api\ShipStreamManagementInterface" method="getConfig">
-            <resources>
-                <resource ref="ShipStream_Sync::config_shipstream_sync"/>
-            </resources>
-        </service>
+<!-- <route url="/V1/shipstream-sync/shipstream" method="POST">
+        <service class="ShipStream\Sync\Api\ShipStreamManagementInterface" method="getConfig" />
+        <resources>
+            <resource ref="ShipStream_Sync::config_shipstream_sync"/>
+        </resources>
     </route> -->
-	<route url="/V1/shipstream-sync/shipstream" method="GET">
-        <service class="ShipStream\Sync\Api\ShipStreamManagementInterface" method="syncInventory">
-            <resources>
-                <resource ref="ShipStream_Sync::config_shipstream_sync"/>
-            </resources>
-        </service>
+    <route url="/V1/shipstream-sync/shipstream" method="GET">
+        <service class="ShipStream\Sync\Api\ShipStreamManagementInterface" method="syncInventory"/>
+        <resources>
+            <resource ref="ShipStream_Sync::config_shipstream_sync"/>
+        </resources>
     </route>
-	<route url="/V1/shipstream-sync/shipstream" method="POST">
-        <service class="ShipStream\Sync\Api\ShipStreamManagementInterface" method="setConfig">
-            <resources>
-                <resource ref="ShipStream_Sync::config_shipstream_sync"/>
-            </resources>
-        </service>
+    <route url="/V1/shipstream-sync/shipstream" method="POST">
+        <service class="ShipStream\Sync\Api\ShipStreamManagementInterface" method="setConfig"/>
+        <resources>
+            <resource ref="ShipStream_Sync::config_shipstream_sync"/>
+        </resources>
     </route>
-	<!-- <route url="/V1/shipstream-sync/shipstream" method="POST">
-        <service class="ShipStream\Sync\Api\ShipStreamManagementInterface" method="moduleInfo">
-            <resources>
-                <resource ref="ShipStream_Sync::config_shipstream_sync"/>
-            </resources>
-        </service>
+    <route url="/V1/shipstream-sync/shipstreamshipmentrevert" method="POST">
+        <service class="ShipStream\Sync\Api\ShipStreamShipmentRevertInterface" method="revert"/>
+        <resources>
+            <resource ref="ShipStream_Sync::config_shipstream_sync"/>
+        </resources>
+    </route>
+
+<!-- <route url="/V1/shipstream-sync/shipstream" method="POST">
+        <service class="ShipStream\Sync\Api\ShipStreamManagementInterface" method="moduleInfo" />
+        <resources>
+            <resource ref="ShipStream_Sync::config_shipstream_sync"/>
+        </resources>
     </route> -->
 </routes>
