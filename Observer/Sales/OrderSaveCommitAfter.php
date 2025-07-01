@@ -71,7 +71,7 @@ class OrderSaveCommitAfter implements ObserverInterface
                     && !$order->getIsVirtual()
                     && $order->getState() == \Magento\Sales\Model\Order::STATE_PROCESSING
                     && $order->dataHasChangedFor('status')
-                    && $order->getStatus() == 'ready_to_ship'
+                    && !in_array($order->getStatus(), ['fraud','submitted','failed_to_submit'])
                 ) {
                     try {
                         $response = $this->dataHelper->callback(
@@ -93,12 +93,9 @@ class OrderSaveCommitAfter implements ObserverInterface
                             } else {
                                 $this->logger->info('Order is not queued for processing.');
                             }
-
                         } else {
                             $this->logger->error(__('Invalid response from callback.'));
                         }
-
-                        $this->logger->info('Order status after callback: ' . $order->getStatus());
                     } catch (\Exception $e) {
                         $this->logger->critical($e);
                     }
