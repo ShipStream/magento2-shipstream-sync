@@ -38,6 +38,9 @@ class OrderSaveCommitAfter implements ObserverInterface
      */
     public function execute(Observer $observer)
     {
+        if (!$this->dataHelper->isSyncEnabled()) {
+            return;
+        }
         $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
         $class = '';
         foreach ($backtrace as $trace) {
@@ -48,6 +51,7 @@ class OrderSaveCommitAfter implements ObserverInterface
             }
         }
         if ($class == 'ShipStream\Sync\Model\ShipStreamOrderComments') {
+            $this->logger->info(__('Skipping observer execution due to ShipStreamOrderComments class.'));
             return;
         }
         /**
@@ -57,18 +61,16 @@ class OrderSaveCommitAfter implements ObserverInterface
         if ($history) {
             $order = $history;
             if ($order) {
-                $this->logger->info(__('Order ID %1: %2', 2, $order->getStatus()));
+                $this->logger->info(__('Order ID %1: %2 - %3', $order->getId(), $order->getStatus(), $order->getState()));
                 // More processing can be done here as needed
                 if ($order->getIsVirtual()
                     && $order->getState() == \Magento\Sales\Model\Order::STATE_PROCESSING
                     && ($order->getStatus() == 'ready_to_ship' || $order->getStatus() == 'submitted')
                 ) {
-                    $order->addStatusHistoryComment('Changed order status to "Complete" as the order is virtual.')
-                        ->setIsCustomerNotified(false);
-                    $this->orderRepository->save($order);
+                    $this->logger->info(__('Virtual order cannot be shipped for Order ID: %1', $order->getIncrementId()));
+                    return;
                 }
-                if ($this->dataHelper->isSyncEnabled()
-                    && !$order->getIsVirtual()
+                if (!$order->getIsVirtual()
                     && $order->getState() == \Magento\Sales\Model\Order::STATE_PROCESSING
                     && $order->dataHasChangedFor('status')
                     && !in_array($order->getStatus(), ['fraud','submitted','failed_to_submit'])
@@ -83,7 +85,7 @@ class OrderSaveCommitAfter implements ObserverInterface
                         );
 
                         if (isset($response['error'])) {
-                            $this->logger->error(springtf('Error in callback response: %s', $statusFrom['error']));
+                            $this->logger->error(sprintf('Error in callback response: %s', $response['error']));
                         } elseif (isset($response['status'])) {
                             $order->setStatus($response['status']);
                             $order->save();
@@ -99,6 +101,8 @@ class OrderSaveCommitAfter implements ObserverInterface
                     } catch (\Exception $e) {
                         $this->logger->critical($e);
                     }
+                } else {
+                    $this->logger->info(__('Order ID %1 is not eligible for sync.', $order->getIncrementId()));
                 }
             } else {
                 $this->logger->error(__('No order associated with the history.'));
