@@ -10,27 +10,36 @@ use Magento\Framework\HTTP\Client\Curl;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\FilterBuilder;
 use Magento\InventoryApi\Api\Data\SourceInterfaceFactory;
+use Magento\InventoryApi\Api\Data\StockInterface;
 use Magento\InventoryApi\Api\SourceRepositoryInterface;
 use Magento\InventoryApi\Api\Data\StockInterfaceFactory;
 use Magento\InventoryApi\Api\StockRepositoryInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\InventoryApi\Api\StockSourceLinksSaveInterface;
+use Magento\InventoryApi\Api\Data\StockSourceLinkInterfaceFactory;
+use Magento\InventoryApi\Api\Data\StockSourceLinkInterface;
+use Magento\InventoryApi\Api\GetStockSourceLinksInterface;
+use Magento\InventoryApi\Api\Data\SourceInterface;
 
 class Data extends AbstractHelper
 {
-    private const XML_PATH_GENERAL     = 'shipstream/general/';
-    private const FLAG_PREFIX         = 'ShipStream_Sync/';
-    private const DEFAULT_COUNTRY     = 'US';
-    private const DEFAULT_POSTCODE    = '00001';
+    private const XML_PATH_GENERAL = 'shipstream/general/';
+    private const FLAG_PREFIX = 'ShipStream_Sync/';
+    private const DEFAULT_COUNTRY = 'US';
+    private const DEFAULT_POSTCODE = '00001';
 
-    private FlagFactory               $flagFactory;
-    private Curl                      $curl;
-    private SourceInterfaceFactory    $sourceFactory;
+    private FlagFactory $flagFactory;
+    private Curl $curl;
+    private SourceInterfaceFactory $sourceFactory;
     private SourceRepositoryInterface $sourceRepository;
-    private StockInterfaceFactory     $stockFactory;
-    private StockRepositoryInterface  $stockRepository;
-    private SearchCriteriaBuilder     $searchCriteriaBuilder;
-    private FilterBuilder             $filterBuilder;
+    private StockInterfaceFactory $stockFactory;
+    private StockRepositoryInterface $stockRepository;
+    private SearchCriteriaBuilder $searchCriteriaBuilder;
+    private FilterBuilder $filterBuilder;
+    private StockSourceLinksSaveInterface $stockSourceLinksSave;
+    private StockSourceLinkInterfaceFactory $stockSourceLinkFactory;
+    private GetStockSourceLinksInterface $getStockSourceLinks;
 
     public function __construct(
         Context $context,
@@ -41,6 +50,9 @@ class Data extends AbstractHelper
         StockRepositoryInterface $stockRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder,
         FilterBuilder $filterBuilder,
+        StockSourceLinkInterfaceFactory $stockSourceLinkFactory,
+        StockSourceLinksSaveInterface $stockSourceLinksSave,
+        GetStockSourceLinksInterface $getStockSourceLinks,
         Curl $curl
     ) {
         parent::__construct($context);
@@ -52,6 +64,9 @@ class Data extends AbstractHelper
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->filterBuilder = $filterBuilder;
         $this->curl = $curl;
+        $this->getStockSourceLinks  = $getStockSourceLinks;
+        $this->stockSourceLinkFactory = $stockSourceLinkFactory;
+        $this->stockSourceLinksSave = $stockSourceLinksSave;
     }
 
     public function isSyncEnabled(): bool
@@ -96,7 +111,7 @@ class Data extends AbstractHelper
 
         if ($sourceName && $sourceCode) {
             try {
-                $this->ensureSourceExists($sourceCode, $sourceName);
+                $source = $this->ensureSourceExists($sourceCode, $sourceName);
             } catch (\Exception $e) {
                 $this->_logger->error('Failed to ensure source: ' . $e->getMessage());
                 throw new \RuntimeException('Source creation failed: ' . $e->getMessage());
@@ -105,11 +120,20 @@ class Data extends AbstractHelper
 
         if ($stockName) {
             try {
-                $this->ensureStockExists($stockName);
+                $stock = $this->ensureStockExists($stockName);
             } catch (\Exception $e) {
                 $this->_logger->error('Failed to ensure stock: ' . $e->getMessage());
                 throw new \RuntimeException('Stock creation failed: ' . $e->getMessage());
             }
+        }
+
+        try {
+            if (isset($source, $stock)) {
+                $this->linkSourceToStock($source->getSourceCode(), (int) $stock->getStockId());
+            }
+        } catch (\Exception $e) {
+            $this->_logger->error('Failed to link source to stock: ' . $e->getMessage());
+            throw new \RuntimeException('Source <-> Stock link failed: ' . $e->getMessage());
         }
 
         return true;
@@ -167,7 +191,7 @@ class Data extends AbstractHelper
             $this->curl->get($url);
             $response = $this->curl->getBody();
             $this->_logger->info("Callback {$method} response: {$response}");
-            
+
             return json_decode($response, true);
         } catch (\Exception $e) {
             $this->_logger->error('Error in callback: ' . $e->getMessage());
@@ -193,11 +217,12 @@ class Data extends AbstractHelper
      *
      * @param string $code
      * @param string $name
+     *
+     * @return SourceInterface
      * @throws \Exception
      */
-    private function ensureSourceExists(string $code, string $name): void
+    private function ensureSourceExists(string $code, string $name): SourceInterface
     {
-        // Check by source name instead of code
         $filter = $this->filterBuilder
             ->setField('name')
             ->setValue($name)
@@ -219,16 +244,27 @@ class Data extends AbstractHelper
             $source->setUseDefaultCarrierConfig(true);
 
             $this->sourceRepository->save($source);
+
+            return $source;
         }
+
+        $source = current($list->getItems());
+        if ( ! $source) {
+            throw new NoSuchEntityException(__('No source found with name: %1', $name));
+        }
+
+        return $source;
     }
 
     /**
      * Ensure a stock exists, create if missing
      *
      * @param string $name
+     *
+     * @return StockInterface
      * @throws \Exception
      */
-    private function ensureStockExists(string $name): void
+    private function ensureStockExists(string $name): StockInterface
     {
         $filter = $this->filterBuilder
             ->setField('name')
@@ -245,6 +281,42 @@ class Data extends AbstractHelper
             $stock = $this->stockFactory->create();
             $stock->setName($name);
             $this->stockRepository->save($stock);
+
+            return $stock;
         }
+
+        $stock = current($list->getItems());
+        if ( ! $stock) {
+            throw new NoSuchEntityException(__('No stock found with name: %1', $name));
+        }
+
+        return $stock;
+    }
+
+    /**
+     *  Link a source to a stock if not already linked
+     *
+     * @param string $sourceCode
+     * @param int $stockId
+     *
+     * @return void
+     */
+    private function linkSourceToStock(string $sourceCode, int $stockId): void
+    {
+        $searchCriteria = $this->searchCriteriaBuilder
+            ->addFilter(StockSourceLinkInterface::STOCK_ID,  $stockId)
+            ->addFilter(StockSourceLinkInterface::SOURCE_CODE, $sourceCode)
+            ->create();
+
+        if ($this->getStockSourceLinks->execute($searchCriteria)->getTotalCount() > 0) {
+            return;
+        }
+
+        $link = $this->stockSourceLinkFactory->create();
+        $link->setStockId($stockId);
+        $link->setSourceCode($sourceCode);
+        $link->setPriority(1);
+
+        $this->stockSourceLinksSave->execute([$link]);
     }
 }
